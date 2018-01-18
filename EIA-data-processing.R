@@ -77,11 +77,11 @@ other.fuels.melted = other.fuels.melted[which(other.fuels.melted$value > 0),] #r
 
 ##reclassify power plants based on EG's reclassification (searching for plant info online)
 other.fuels.melted$new.fuel[other.fuels.melted$Plant.Id %in% c(57842,57072,50305,54291)] = "OBIT" #reclassified as bituminous
-other.fuels.melted$new.fuel[other.fuels.melted$Plant.Id %in% c(10601,50304,50404,50633,52006,55066,55557,57938,52064,54224,50043,52065,52063,58197,58823,50487,50489,50488,50153,50205)] = "OOIL" #reclassified as oil
-other.fuels.melted$new.fuel[other.fuels.melted$Plant.Id %in% c(1745,50371,50388,50481,50624,55419,56163,58251,59383,57684,58216,10204,10434,10198,10004,50509,50274,54472,50473,50474)] = "ONG" #reclassified as natural gas
+other.fuels.melted$new.fuel[other.fuels.melted$Plant.Id %in% c(10601,50304,50404,50633,52006,55066,55557,57938,52064,54224,50043,52065,52063,58197,58823,50487,50489,50488,50153,50205,5176857,1844732)] = "OOIL" #reclassified as oil
+other.fuels.melted$new.fuel[other.fuels.melted$Plant.Id %in% c(1745,50371,50388,50481,50624,55419,56163,58251,59383,57684,58216,10204,10434,10198,10004,50509,50274,54472,50473,50474,976021,2677147,1251259,1267121,370862,42680)] = "ONG" #reclassified as natural gas
 other.fuels.melted$new.fuel[other.fuels.melted$Plant.Id %in% c(10426,10208,57759,50424,58146,10466)] = "OBRDF" #reclassified as biomass and RDF
 other.fuels.melted$new.fuel[other.fuels.melted$Plant.Id %in% c(57172)] = "OSUB" #reclassified as subbituminous
-other.fuels.melted$new.fuel[other.fuels.melted$Plant.Id %in% c(56294,50626,56258,56139,56833,56880,57281,57134)] = "UNK" #unknown fuels (weren't in EG's classifications)
+#other.fuels.melted$new.fuel[other.fuels.melted$Plant.Id %in% c(56294,50626,56258,56139,56833,56880,57281,57134)] = "UNK" #unknown fuels (weren't in EG's classifications)
 
 ##put back into same format as reported.fuels dataframe
 other.fuels.cast = dcast(other.fuels.melted, Plant.Id~new.fuel, value.var='value')
@@ -104,7 +104,7 @@ fuel.categories$Uranium = reported.fuels.m[,c("NUC")]
 fuel.categories$Lignite.Coal = reported.fuels.m[,c("LIG")]
 fuel.categories$Bituminous.Coal = rowSums(reported.fuels.m[,c("BIT","BFG","RC","SC","SGC","WC","OBIT")])
 fuel.categories$Subbituminous.Coal = rowSums(reported.fuels.m[,c("SUB", "OSUB")])
-fuel.categories$Unknown = reported.fuels.m[,c("UNK")]
+#fuel.categories$Unknown = reported.fuels.m[,c("UNK")]
 
 ##merge plant.locations with fuel.categories for primary energy MMBTU dataframe
 primary.energy.mmbtu = merge(x=plant.locations, y=fuel.categories, all.x=TRUE, by.x="Plant.Code", by.y="Plant.Id")
