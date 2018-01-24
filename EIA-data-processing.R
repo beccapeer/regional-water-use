@@ -34,7 +34,7 @@ library(reshape2)
   #setwd('~')
   setwd(eia923.folder)
   page1.gensandfuel = as.data.table(read.xlsx(eia923.file.s2t5, sheet = 1, startRow = 6))   #fuel use data
-  page5.purchasedfuel = as.data.table(read.xlsx(eia923.file.s2t5, sheet = 5, startRow = 6)) #purchased fuel data, including coal mine state & amount purchased
+  page5.purchasedfuel = as.data.table(read.xlsx(eia923.file.s2t5, sheet = 5, startRow = 5)) #purchased fuel data, including coal mine state & amount purchased
 
 
 #EIA 860 spreadsheets
@@ -120,10 +120,59 @@ library(reshape2)
 
 
 #pivotting reported fuel use for coal by coal type and coal mine state
+  #keep the records for coal purchases only (too many pipelines to track NG and Oil)
+  purchased.coal = page5.purchasedfuel[which(page5.purchasedfuel$FUEL_GROUP=="Coal"),]
   #calculate total MMBTU used for each entry (multiplying average heat content of coal by physical units purchased. (MMBTU/ton *tons purchased)
-  purchased.coal 
-
-
+  purchased.coal$MMBTU = purchased.coal$QUANTITY*purchased.coal$Average.Heat.Content 
+  purchased.coal.states = dcast(purchased.coal, Plant.Id+Coalmine.State~ENERGY_SOURCE, value.var = 'MMBTU', fun.aggregate = sum)
+  
+  #isolate kentucky coal to assign East and West coal (all Bituminous coal)
+  kentucky.coal = purchased.coal[which(purchased.coal$Coalmine.State == "KY"),]
+  #use the county FIPS ID to determine if East or West
+  kentucky.coal.cast = dcast(kentucky.coal, Plant.Id~Coalmine.County, value.var = 'MMBTU', fun.aggregate = sum)
+  kentucky.coal.melted = melt(kentucky.coal.cast, id="Plant.Id")
+  kentucky.coal.melted = kentucky.coal.melted[which(kentucky.coal.melted$value>0),]
+  #classify Eastern Kentucky coal based on county FIPS ID
+    #Eastern coal
+  kentucky.coal.melted$east.west[kentucky.coal.melted$variable %in% c('13','19','25','51','65','71','95','115','119','121','127','131','133','153','159','193','195','203')] = 'KYE'
+    #Western coal (note: county 217, Taylor County, was determined to be West based on geographic location.)
+    #(note2: Coal mine reporting 'NA' for FIPS ID was determined to be in Daviess County, FIPS ID=59)
+  kentucky.coal.melted$east.west[kentucky.coal.melted$variable %in% c('59','107','139','149','177','183','217','225','233','NA')] = 'KYW'
+  #get into same format as other purchased coal data 
+  kentucky.eastwest = kentucky.coal.melted[,c(1,3,4)]
+  #define coal region for Kentucky coal 
+  kentucky.eastwest$coal.region[kentucky.eastwest$east.west %in% c('KYE')] = 'APPK' #Appalachia/Eastern - Kentucky
+  kentucky.eastwest$coal.region[kentucky.eastwest$east.west %in% c('KYW')] = 'INTK' #Interior -  Kentucky
+  kentucky.eastwest$energy.source = 'BIT'
+  kentucky.eastwest.cast = dcast(kentucky.eastwest, Plant.Id~coal.region+energy.source, value.var = 'value', fun.aggregate = sum) 
+  
+  #Assign coal regions based on EG's definition of coal provinces
+  purchased.coal = purchased.coal[which(purchased.coal$Coalmine.State != "KY")]
+  purchased.coal$coal.region[purchased.coal$Coalmine.State %in% c('MT','ND','WY')] = 'NGP' #Northern Great Plains
+  purchased.coal$coal.region[purchased.coal$Coalmine.State %in% c('AL','MD','OH','PA','TN','VA','WV')] = 'APPA' #Appalachia/Eastern (without Kentucky)
+  purchased.coal$coal.region[purchased.coal$Coalmine.State %in% c('AR','IL','IN','KS','MO','OK')] = 'INTE' #Interior (without Kentucky)
+  purchased.coal$coal.region[purchased.coal$Coalmine.State %in% c('LA','MS','TX')] = 'GFC' #Gulf Coast
+  purchased.coal$coal.region[purchased.coal$Coalmine.State %in% c('AZ','CO','NM','UT')] = 'RMR' #Rocky Mountain Region
+  purchased.coal$coal.region[purchased.coal$Coalmine.State %in% c('AU','CL','CN','IS','PL','RS','UK','VZ','OC','WA')] = 'OTH' #Other, other Countries & Washington state
+  #redefine waste coal as bituminous coal (from EG's classifications)
+  purchased.coal$ENERGY_SOURCE[purchased.coal$ENERGY_SOURCE %in% c('WC')] = 'BIT'
+  #create pivot of coal.type_coal.region for each power plant
+  purchased.coal.cast = dcast(purchased.coal, Plant.Id~coal.region+ENERGY_SOURCE, value.var = 'MMBTU', fun.aggregate = sum)
+  # purchased.coal.melted = melt(purchased.coal.cast, id=c('Plant.Id','Coalmine.State'))
+  # purchased.coal.melted = purchased.coal.melted[which(purchased.coal.melted$value  > 0),]
+  
+  #merge with Kentucky coal region allocation
+  purchased.coal.m = merge(x=purchased.coal.cast, y=kentucky.eastwest.cast, all.x = TRUE, by.x=c('Plant.Id'), by.y=c('Plant.Id'), allow.cartesian = TRUE)
+  purchased.coal.m$INT_BIT = purchased.coal.m$INTE_BIT + purchased.coal.m$INTK_BIT #add Kentucky coal for Interior region
+  purchased.coal.m$APP_BIT = purchased.coal.m$APPA_BIT + purchased.coal.m$APPA_BIT #add Kentucky coal for Appalachia region
+  purchased.coal.m[is.na(purchased.coal.m)] = 0
+  #remove old Iterior and Appalachia columns
+  purchased.coal.m$APPA_BIT = NULL
+  purchased.coal.m$APPK_BIT = NULL
+  purchased.coal.m$INTE_BIT = NULL
+  purchased.coal.m$INTK_BIT = NULL
+  
+    
 # primary energy water use ------------------------------------------------
 
 #calculate total fuel consumption (MMBTU) for each fuel category defined by EG
