@@ -14,6 +14,7 @@ eia860.folder = '~/Documents/Graduate/Journal Papers/in-progress/EST_regional-wa
 eia923.folder = '~/Documents/Graduate/Journal Papers/in-progress/EST_regional-water-rates/data/2014 EIA 923/'
 eia923.file.s2t5 = 'EIA923_Schedules_2_3_4_5_M_12_2014_Final_Revision.xlsx' #923 schedules 2 thru 5
 eia860.file.s2 = '2___Plant_Y2014.xlsx' #860 schedule 2
+wateruse.file = 'PE-water-use-rates.xlsx'
 #output.dir    = '~/Documents/Graduate/Journal Papers/in-progress/EST_regional-water-rates'
 #setwd(wd)
 
@@ -42,6 +43,18 @@ library(reshape2)
   setwd(eia860.folder)
   plantinfo = as.data.table(read.xlsx(eia860.file.s2, sheet = 1, startRow = 2)) #information on location (lat, long)
 
+  
+#Water use rates
+  #setwd('~')
+  setwd(wd)
+  all.wc = as.data.table(read.xlsx(wateruse.file, sheet = 1, startRow = 2)) #total water consumption
+  ground.wc = as.data.table(read.xlsx(wateruse.file, sheet = 3, startRow = 2)) #groundwater consumption
+  surface.wc = as.data.table(read.xlsx(wateruse.file, sheet = 5, startRow = 2)) #surface water consumption
+  reuse.wc = as.data.table(read.xlsx(wateruse.file, sheet = 7, startRow = 2)) #reuse water consumption
+  fresh.wc = as.data.table(read.xlsx(wateruse.file, sheet = 9, startRow = 2)) #freshwater consumption
+  brackish.wc = as.data.table(read.xlsx(wateruse.file, sheet = 11, startRow = 2)) #brackish water consumption
+  saline.wc = as.data.table(read.xlsx(wateruse.file, sheet = 13, startRow = 2)) #saline water consumption
+  notRO.wc = as.data.table(read.xlsx(wateruse.file, sheet = 15, startRow = 2)) #not RO-treatable water consumption
 
 # define constants --------------------------------------------------------
 
@@ -55,69 +68,38 @@ library(reshape2)
   ##gal/m^3
   conversion.gal.m3 = 264.172
 
-#average water consumption rates for primary fuels (excluding electricity generation and combustion)
+#water consumption rates for primary fuels (excluding power plant cooling and combustion)
 #taken from EG/KTS file "SupplementaryData-Grubert_Sanders_2017-WaterUSEnergySystem2014.xlsx"
 #in units of m^3/GJ of energy delivered
-  ##Oil
-  oil.pe.wc = 0.09128625106874
-  ##Subbituminous Coal
-  sub.pe.wc = 0.0332094681124067
-  ##Bituminous Coal
-  bit.pe.wc = 0.215490520902101
-  ##Lignite Coal
-  lig.pe.wc = 0.127198252548367
-  ##Natural Gas
-  ng.pe.wc = 0.0461227315259617
-  ##Uranium
-  ur.pe.wc = 0.00723625120635806
-  ##Hydropower
-  wat.pe.wc = 2.647461737423
-  ##Wind
-  wnd.pe.wc = 0.00315979814785318
-  ##Solid Biomass & RDF
-  brdf.pe.wc = 0.0582956327471195
-  ##Biogas
-  bg.pe.wc = 0
-  ##Geothermal
-  geo.pe.wc = 2.76561506505262
-  ##Solar PV
-  spv.pe.wc = 0.00186922215536582
-  ##Solar Thermal
-  sth.pe.wc = 0.0210653209856878
-    
-#average water withdrawal rates for primary fuels (excluding electricity generation and combustion)
-  ##Oil
-  oil.pe.ww = 0.160749156561717
-  ##Subbituminous Coal
-  sub.pe.ww = 0.0117889567555314
-  ##Bituminous Coal
-  bit.pe.ww = 0.321370082010856
-  ##Lignite Coal
-  lig.pe.ww = 0.127191481911504
-  ##Natural Gas
-  ng.pe.ww = 0.0477599714314879
-  ##Uranium
-  ur.pe.ww = 0.00754568153590556
-  ##Hydropower
-  wat.pe.ww = 2.647461737423 #***for now, assume withdrawals = consumption
-  ##Wind
-  wnd.pe.ww = 0.00315979814785318
-  ##Solid Biomass & RDF
-  brdf.pe.ww = 0.0582956327471195
-  ##Biogas
-  bg.pe.ww = 0
-  ##Geothermal
-  geo.pe.ww = 2.76561506505262
-  ##Solar PV
-  spv.pe.ww = 0.00186922215536582
-  ##Solar Thermal
-  sth.pe.ww = 0.0210653209856878
+  ##total water consumption
+  oil.tot.wc = as.numeric(all.wc[1, 7]) * conversion.gj.mmbtu
+  sub.ngp.tot.wc = as.numeric(all.wc[2,7]) * conversion.gj.mmbtu
+  bit.app.tot.wc = as.numeric(all.wc[3,7]) * conversion.gj.mmbtu
+  bit.int.tot.wc = as.numeric(all.wc[4,7]) * conversion.gj.mmbtu
+  bit.rmr.tot.wc = as.numeric(all.wc[5,7]) * conversion.gj.mmbtu
+  lig.gfc.tot.wc = as.numeric(all.wc[6,7]) * conversion.gj.mmbtu
+  lig.ngp.tot.wc = as.numeric(all.wc[7,7]) * conversion.gj.mmbtu
+  ng.tot.wc = as.numeric(all.wc[8,7]) * conversion.gj.mmbtu
+  ur.tot.wc = as.numeric(all.wc[9,7]) * conversion.gj.mmbtu
+  wat.tot.wc = as.numeric(all.wc[10,7]) * conversion.gj.mmbtu
+  wnd.tot.wc = as.numeric(all.wc[11,7]) * conversion.gj.mmbtu
+  brdf.tot.wc = as.numeric(all.wc[12,7]) * conversion.gj.mmbtu
+  bg.tot.wc = as.numeric(all.wc[13,7]) * conversion.gj.mmbtu
+  geo.tot.wc = as.numeric(all.wc[14,7]) * conversion.gj.mmbtu
+  spv.tot.wc = as.numeric(all.wc[15,7]) * conversion.gj.mmbtu
+  sth.tot.wc = as.numeric(all.wc[16,7]) * conversion.gj.mmbtu
+  sub.rmr.tot.wc = as.numeric(all.wc[17,7]) * conversion.gj.mmbtu
+  bit.avg.tot.wc = as.numeric(all.wc[18,7]) * conversion.gj.mmbtu
+  sub.avg.tot.wc = as.numeric(all.wc[19,7]) * conversion.gj.mmbtu
+  
   
 # make pivot tables -------------------------------------------------------
 
 #pivoting reported fuel consumption (MMBTU) for EIA fuel codes 
   reported.fuels = dcast(page1.gensandfuel, Plant.Id~Reported.Fuel.Type.Code, value.var = 'Total.Fuel.Consumption.MMBtu', fun.aggregate = sum)
-
+  
+#pivoting for generation (by power plant) to do primary energy calc's for renewables (solar, wind)
+  plant.generation = dcast(page1.gensandfuel, Plant.Id~Reported.Fuel.Type.Code, value.var = 'Net.Generation.(Megawatthours)', fun.aggregate = sum)
 
 #pivotting reported fuel use for coal by coal type and coal mine state
   #keep the records for coal purchases only (too many pipelines to track NG and Oil)
@@ -135,7 +117,7 @@ library(reshape2)
   #classify Eastern Kentucky coal based on county FIPS ID
     #Eastern coal
   kentucky.coal.melted$east.west[kentucky.coal.melted$variable %in% c('13','19','25','51','65','71','95','115','119','121','127','131','133','153','159','193','195','203')] = 'KYE'
-    #Western coal (note: county 217, Taylor County, was determined to be West based on geographic location.)
+    #Western coal (note1: county 217, Taylor County, was determined to be West based on geographic location.)
     #(note2: Coal mine reporting 'NA' for FIPS ID was determined to be in Daviess County, FIPS ID=59)
   kentucky.coal.melted$east.west[kentucky.coal.melted$variable %in% c('59','107','139','149','177','183','217','225','233','NA')] = 'KYW'
   #get into same format as other purchased coal data 
@@ -202,17 +184,46 @@ library(reshape2)
   reported.fuels.m[is.na(reported.fuels.m)] = 0
   
   ##assign solar thermal fuel (separate from solar PV) for water calcs
-  solar.fuels = reported.fuels[c("Plant.Id","SUN")]
-  solar.fuels = solar.fuels[which(solar.fuels$SUN > 0),]
-  solar.fuels.melted = melt(solar.fuels, id="Plant.Id")
-  solar.fuels.melted$new.fuel[solar.fuels.melted$Plant.Id %in% c(6043,10437,10438,10439,10440,10441,10442,10443,10446,56405,56812,56943,57073,57074,57075,57323,57394,59060)] = "SUNT"
-  solar.fuels.melted[is.na(solar.fuels.melted)] = "SUN"
-  solar.fuels.cast = dcast(solar.fuels.melted, Plant.Id~new.fuel, value.var='value')
-  solar.fuels.cast[is.na(solar.fuels.cast)] = 0
+  # solar.fuels = reported.fuels[c("Plant.Id","SUN")]
+  # solar.fuels = solar.fuels[which(solar.fuels$SUN > 0),]
+  # solar.fuels.melted = melt(solar.fuels, id="Plant.Id")
+  # solar.fuels.melted$new.fuel[solar.fuels.melted$Plant.Id %in% c(6043,10437,10438,10439,10440,10441,10442,10443,10446,56405,56812,56943,57073,57074,57075,57323,57394,59060)] = "SUNT"
+  # solar.fuels.melted[is.na(solar.fuels.melted)] = "SUN"
+  # solar.fuels.cast = dcast(solar.fuels.melted, Plant.Id~new.fuel, value.var='value')
+  # solar.fuels.cast[is.na(solar.fuels.cast)] = 0
   
   ##merge solar data with reported data 
-  reported.fuels.m$SUN = NULL #remove old solar fuel column
-  reported.fuels.m = merge(x=reported.fuels.m, y=solar.fuels.cast, all.x=TRUE, by.x="Plant.Id", by.y="Plant.Id")
+  # reported.fuels.m$SUN = NULL #remove old solar fuel column
+  # reported.fuels.m = merge(x=reported.fuels.m, y=solar.fuels.cast, all.x=TRUE, by.x="Plant.Id", by.y="Plant.Id")
+  # reported.fuels.m[is.na(reported.fuels.m)] = 0
+  
+  ##do calculations for primary energy for solar and wind based on generation (MWh)
+  sun.wnd.gen = plant.generation[,c(1,34,41)]
+  
+  solar.gen = sun.wnd.gen[,c("Plant.Id","SUN")]
+  solar.gen = solar.gen[which(solar.gen$SUN > 0),]
+  solar.gen.melted = melt(solar.gen, id="Plant.Id")
+  solar.gen.melted$new.fuel[solar.gen.melted$Plant.Id %in% c(6043,10437,10438,10439,10440,10441,10442,10443,10446,56405,56812,56943,57073,57074,57075,57323,57394,59060)] = "SUNT"
+  solar.gen.melted[is.na(solar.gen.melted)] = "SUN"
+  solar.gen.cast = dcast(solar.gen.melted, Plant.Id~new.fuel, value.var='value')
+  solar.gen.cast[is.na(solar.gen.cast)] = 0
+  
+  sun.wnd.gen$SUN = NULL #remove old solar fuel column
+  sun.wnd.gen = merge(x=sun.wnd.gen, y=solar.gen.cast, all.x=TRUE, by.x="Plant.Id", by.y="Plant.Id")
+  sun.wnd.gen[is.na(sun.wnd.gen)] = 0
+  
+  #remove sun and wind MMBTU from reported fuels and merge back MWh's into reported fuels dataframe 
+  reported.fuels.m$SUN = NULL
+  reported.fuels.m$WND = NULL
+  reported.fuels.m = merge(x=reported.fuels.m, y=sun.wnd.gen, all.x=TRUE, by.x="Plant.Id", by.y="Plant.Id")
+  reported.fuels.m[is.na(reported.fuels.m)] = 0
+  
+  #Merge regional coal data back into reported fuels dataframe 
+  reported.fuels.m$BIT = NULL
+  reported.fuels.m$SUB = NULL
+  reported.fuels.m$LIG = NULL
+  
+  reported.fuels.m = merge(x=reported.fuels.m, y=purchased.coal.m, all.x=TRUE, by.x="Plant.Id", by.y="Plant.Id")
   reported.fuels.m[is.na(reported.fuels.m)] = 0
   
   ##reassign feul categories (EG's fuel categories)
@@ -226,20 +237,46 @@ library(reshape2)
   fuel.categories$Oil = rowSums(reported.fuels.m[,c("DFO","JF","KER","PC","PG","RFO","SGP","WO","OOIL")])
   fuel.categories$Natural.Gas = rowSums(reported.fuels.m[,c("NG", "OG","ONG")])
   fuel.categories$Uranium = reported.fuels.m[,c("NUC")]
-  fuel.categories$Lignite.Coal = reported.fuels.m[,c("LIG")]
-  fuel.categories$Bituminous.Coal = rowSums(reported.fuels.m[,c("BIT","BFG","RC","SC","SGC","WC","OBIT")])
-  fuel.categories$Subbituminous.Coal = rowSums(reported.fuels.m[,c("SUB", "OSUB")])
+  fuel.categories$Lignite.Coal.gfc = reported.fuels.m[,c("GFC_LIG")]
+  fuel.categories$Lignite.Coal.ngp = reported.fuels.m[,c("NGP_LIG")]
+  fuel.categories$Bituminous.Coal.avg = rowSums(reported.fuels.m[,c("OTH_BIT","BFG","RC","SC","SGC","WC","OBIT")])
+  fuel.categories$Bituminous.Coal.app = reported.fuels.m[,c("APP_BIT")]
+  fuel.categories$Bituminous.Coal.int = reported.fuels.m[,c("INT_BIT")]
+  fuel.categories$Bituminous.Coal.rmr = reported.fuels.m[,c("RMR_BIT")]
+  fuel.categories$Subbituminous.Coal.avg = rowSums(reported.fuels.m[,c("OTH_SUB", "OSUB")])
+  fuel.categories$Subbituminous.Coal.ngp = reported.fuels.m[,c("NGP_SUB")]
+  fuel.categories$Subbituminous.Coal.rmr = reported.fuels.m[,c("RMR_SUB")]
   #fuel.categories$Unknown = reported.fuels.m[,c("UNK")]
     
   ##merge plant.locations with fuel.categories for primary energy MMBTU dataframe
   primary.energy.mmbtu = merge(x=plant.locations, y=fuel.categories, all.x=TRUE, by.x="Plant.Code", by.y="Plant.Id")
-
-  ##remove plants outside the continental US (Alaska=AK, Hawaii=HI)
-  primary.energy.mmbtu = primary.energy.mmbtu[which(State != "AK")]
-  primary.energy.mmbtu = primary.energy.mmbtu[which(State != "HI")]
+  
 
 #calculate water consumption for each primary energy by power plant
+  total.wc.m3 = primary.energy.mmbtu[,c(1:5)] #power plant names, id, and location
+  total.wc.m3$Hydropower = primary.energy.mmbtu[,c("Hydropower")]*wat.tot.wc
+  total.wc.m3$Solar = primary.energy.mmbtu[,c("Solar")]*spv.tot.wc
+  total.wc.m3$Solar.Thermal = primary.energy.mmbtu[,c("Solar.Thermal")]*sth.tot.wc
+  total.wc.m3$Wind = primary.energy.mmbtu[,c("Wind")]*wnd.tot.wc
+  total.wc.m3$Geothermal = primary.energy.mmbtu[,c("Geothermal")]*geo.tot.wc
+  total.wc.m3$Solid.Biomass.RDF = primary.energy.mmbtu[,c("Solid.Biomass.RDF")]*brdf.tot.wc
+  total.wc.m3$Biogas = primary.energy.mmbtu[,c("Biogas")]*bg.tot.wc
+  total.wc.m3$Oil = primary.energy.mmbtu[,c("Oil")]*oil.tot.wc
+  total.wc.m3$Natural.Gas = primary.energy.mmbtu[,c("Natural.Gas")]*ng.tot.wc
+  total.wc.m3$Uranium = primary.energy.mmbtu[,c("Uranium")]*ur.tot.wc
+  total.wc.m3$Lignite.Coal.gfc = primary.energy.mmbtu[,c("Lignite.Coal.gfc")]*lig.gfc.tot.wc
+  total.wc.m3$Ligite.Coal.ngp = primary.energy.mmbtu[,c("Lignite.Coal.ngp")]*lig.ngp.tot.wc
+  total.wc.m3$Bituminous.Coal.avg = primary.energy.mmbtu[,c("Bituminous.Coal.avg")]*bit.avg.tot.wc
+  total.wc.m3$Bituminous.Coal.app = primary.energy.mmbtu[,c("Bituminous.Coal.app")]*bit.app.tot.wc
+  total.wc.m3$Bituminous.Coal.int = primary.energy.mmbtu[,c("Bituminous.Coal.int")]*bit.int.tot.wc
+  total.wc.m3$Bituminous.Coal.rmr = primary.energy.mmbtu[,c("Bituminous.Coal.rmr")]*bit.rmr.tot.wc
+  total.wc.m3$Subbituminous.Coal.avg = primary.energy.mmbtu[,c("Subbituminous.Coal.avg")]*sub.avg.tot.wc
+  total.wc.m3$Subbituminous.Coal.ngp = primary.energy.mmbtu[,c("Subbituminous.Coal.ngp")]*sub.ngp.tot.wc
+  total.wc.m3$Subbituminous.Coal.rmr = primary.energy.mmbtu[,c("Subbituminous.Coal.rmr")]*sub.rmr.tot.wc
+  
+  #calculate total water embedded in primary energy by power plant
+  total.wc.m3$total.wc = rowSums(total.wc.m3[,c(6:24)])
   
   
-#calculate water withdrawal for each primary energy by power plant 
-
+  
+  
