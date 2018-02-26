@@ -98,7 +98,7 @@ library(reshape2)
 #pivoting reported fuel consumption (MMBTU) for EIA fuel codes 
   reported.fuels = dcast(page1.gensandfuel, Plant.Id~Reported.Fuel.Type.Code, value.var = 'Total.Fuel.Consumption.MMBtu', fun.aggregate = sum)
   
-#pivoting for generation (by power plant) to do primary energy calc's for renewables (solar, wind)
+#pivoting for generation (by power plant)
   plant.generation = dcast(page1.gensandfuel, Plant.Id~Reported.Fuel.Type.Code, value.var = 'Net.Generation.(Megawatthours)', fun.aggregate = sum)
 
 #pivotting reported fuel use for coal by coal type and coal mine state
@@ -276,7 +276,21 @@ library(reshape2)
   
   #calculate total water embedded in primary energy by power plant
   total.wc.m3$total.wc = rowSums(total.wc.m3[,c(6:24)])
+  ##############you are herereeeee
+  total.wc.gal = total.wc.m3
+  total.wc.gal[,c(6:25)] =total.wc.gal[,c(6:25)] * conversion.gal.m3
+  
+  #set up dataframe for exporting water use to csv file (for GIS!)
+  wc.pe.m3 = total.wc.m3[,c(1:5,25)]
+  wc.pe.gal = total.wc.gal[,c(1:5,25)]
+  
+  #export files to csv
+  write.csv(total.wc.m3, 'total-wc-by-fuel-m3.csv', row.names = FALSE)
+  write.csv(wc.pe.m3, 'water-consumption-pe-m3.csv', row.names = FALSE)
+  write.csv(total.wc.gal, 'total-wc-by-fuel-gal.csv', row.names = FALSE)
+  write.csv(wc.pe.gal, 'water-consumption-pe-gal.csv', row.names = FALSE)
   
   
   
-  
+# Electricity water use ---------------------------------------------------
+
