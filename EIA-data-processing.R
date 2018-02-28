@@ -13,8 +13,11 @@ wd            = '~/Documents/Graduate/Journal Papers/in-progress/EST_regional-wa
 eia860.folder = '~/Documents/Graduate/Journal Papers/in-progress/EST_regional-water-rates/data/2014 EIA 860/'
 eia923.folder = '~/Documents/Graduate/Journal Papers/in-progress/EST_regional-water-rates/data/2014 EIA 923/'
 eia923.file.s2t5 = 'EIA923_Schedules_2_3_4_5_M_12_2014_Final_Revision.xlsx' #923 schedules 2 thru 5
+eia923.file.s8d = 'EIA923_Schedule_8_Annual_Environmental_Information_2014_Final_Revision.xlsx' #923 schedule 8
 eia860.file.s2 = '2___Plant_Y2014.xlsx' #860 schedule 2
+eia860.file.s6a = '6_1_EnviroAssoc_Y2014.xlsx' #860 schedule 6 Associations
 wateruse.file = 'PE-water-use-rates.xlsx'
+coolinguse.file = 'Electricity-water-use-rates.xlsx'
 #output.dir    = '~/Documents/Graduate/Journal Papers/in-progress/EST_regional-water-rates'
 #setwd(wd)
 
@@ -35,17 +38,22 @@ library(reshape2)
   #setwd('~')
   setwd(eia923.folder)
   page1.gensandfuel = as.data.table(read.xlsx(eia923.file.s2t5, sheet = 1, startRow = 6))   #fuel use data
+  page3.gendata = as.data.table(read.xlsx(eia923.file.s2t5, sheet = 4, startRow = 6)) #generation data by generator ID
+  page4.boilerfuel = as.data.table(read.xlsx(eia923.file.s2t5, sheet = 3, startRow = 6)) #boiler and fuel data 
   page5.purchasedfuel = as.data.table(read.xlsx(eia923.file.s2t5, sheet = 5, startRow = 5)) #purchased fuel data, including coal mine state & amount purchased
-
+  schedule.8d = as.data.table(read.xlsx(eia923.file.s8d, sheet = 5, startRow = 5))
+  
 
 #EIA 860 spreadsheets
   #setwd('~')
   setwd(eia860.folder)
   plantinfo = as.data.table(read.xlsx(eia860.file.s2, sheet = 1, startRow = 2)) #information on location (lat, long)
-
+  assn.boiler.gen = as.data.table(read.xlsx(eia860.file.s6a, sheet = 1, startRow = 2)) #associations between boiler ID and generator ID
+  assn.boiler.cs = as.data.table(read.xlsx(eia860.file.s6a, sheet = 2, startRow = 2)) #associations between boiler ID and cooling system ID
   
 #Water use rates
   #setwd('~')
+  #primary energy water use rates
   setwd(wd)
   all.wc = as.data.table(read.xlsx(wateruse.file, sheet = 1, startRow = 2)) #total water consumption
   ground.wc = as.data.table(read.xlsx(wateruse.file, sheet = 3, startRow = 2)) #groundwater consumption
@@ -56,6 +64,11 @@ library(reshape2)
   saline.wc = as.data.table(read.xlsx(wateruse.file, sheet = 13, startRow = 2)) #saline water consumption
   notRO.wc = as.data.table(read.xlsx(wateruse.file, sheet = 15, startRow = 2)) #not RO-treatable water consumption
 
+  #cooling water use rates 
+  setwd(wd)
+  cooling.rates = as.data.table(read.xlsx(coolinguse.file, sheet = 2, startRow = 1))
+  
+  
 # define constants --------------------------------------------------------
 
 #conversion factors
@@ -276,7 +289,6 @@ library(reshape2)
   
   #calculate total water embedded in primary energy by power plant
   total.wc.m3$total.wc = rowSums(total.wc.m3[,c(6:24)])
-  ##############you are herereeeee
   total.wc.gal = total.wc.m3
   total.wc.gal[,c(6:25)] =total.wc.gal[,c(6:25)] * conversion.gal.m3
   
@@ -294,3 +306,98 @@ library(reshape2)
   
 # Electricity water use ---------------------------------------------------
 
+  #merge generator, boiler, and cooling system info 
+  info.bygenerator = page1.gensandfuel[,c(1:2,4,14,15,96)]
+  # info.bygenerator = merge(info.bygenerator, assn.boiler.gen, all.x = TRUE, by.x= c('Plant.Id', 'Generator.Id'), by.y=c('Plant.Code','Generator.ID'))
+  # info.bygenerator[,c('Utility.ID','Utility.Name','Plant.Name.y')] = NULL
+  #get fuel codes from 923 boiler data 
+  boiler.fuels = page4.boilerfuel[,c(1,12,13,14)]
+  # boiler.fuels = unique(boiler.fuels)
+  info.bygenerator = merge(info.bygenerator, boiler.fuels, all.x = TRUE, by.x = c('Plant.Id','Reported.Prime.Mover','Reported.Fuel.Type.Code'), by.y = c('Plant.Id','Reported.Prime.Mover','Reported.Fuel.Type.Code'))
+  info.bygenerator = merge(info.bygenerator, assn.boiler.cs, all.x = TRUE, by.x= c('Plant.Id', 'Boiler.Id'), by.y = c('Plant.Code', 'Boiler.ID'))
+  info.bygenerator[,c('Utility.ID','Utility.Name','Plant.Name', 'Steam.Plant.Type.y')] = NULL
+  info.bygenerator[,c(8:10,12)] = NULL #remove superfluous info
+  
+  #grab cooling system type from schedule 8D
+  cooling.system = schedule.8d[,c('Plant.ID','Cooling.System.ID','Code')]
+  cooling.system = unique(cooling.system)
+  info.bygenerator = merge(info.bygenerator, cooling.system, all.x = TRUE, allow.cartesian= TRUE, by.x = c('Plant.Id','Cooling.ID'), by.y = c('Plant.ID','Cooling.System.ID'))
+  
+  #redefine fuel and prime mover codes (cooling system codes assigned in 860 spreadsheet)
+  # boiler.fuels$new.pm[boiler.fuels$Reported.Prime.Mover %in% c('CA','CS','CT')] = 'CC'
+  # boiler.fuels$new.pm[boiler.fuels$Reported.Prime.Mover %in% c('BA','CE','CP','ES','FW','PS', 'FC')] = 'ES'
+  # boiler.fuels$new.pm[boiler.fuels$Reported.Prime.Mover %in% c('GT','IC')] = 'GT'
+  # boiler.fuels$new.pm[boiler.fuels$Reported.Prime.Mover %in% c('HA','HB','HK')] = 'HK'
+  # boiler.fuels$new.pm[boiler.fuels$Reported.Prime.Mover %in% c('HY')] = 'HY'
+  # boiler.fuels$new.pm[boiler.fuels$Reported.Prime.Mover %in% c('PV')] = 'PV'
+  # boiler.fuels$new.pm[boiler.fuels$Reported.Prime.Mover %in% c('ST','BT')] = 'ST'
+  # boiler.fuels$new.pm[boiler.fuels$Reported.Prime.Mover %in% c('WT','WS')] = 'WT'
+  # boiler.fuels$new.pm[boiler.fuels$Reported.Prime.Mover %in% c('OT')] = 'OT'
+  
+  # boiler.fuels$new.fuel[boiler.fuels$Reported.Fuel.Type.Code %in% c('LFG','OBG')] = 'BMG'
+  # boiler.fuels$new.fuel[boiler.fuels$Reported.Fuel.Type.Code %in% c('AB','BLQ','MSN','MSB','OBL','OBS','SLW','TDF','WDL','WDS')] = 'BM'
+  # boiler.fuels$new.fuel[boiler.fuels$Reported.Fuel.Type.Code %in% c('BIT','DFO','JF','KER','LIG','PC','RC','RFO','SC','SUB','WC','WO')] = 'FSL'
+  # boiler.fuels$new.fuel[boiler.fuels$Reported.Fuel.Type.Code %in% c('GEO')] = 'GEO'
+  # boiler.fuels$new.fuel[boiler.fuels$Reported.Fuel.Type.Code %in% c('BFG','NG','PG','SGC','SGP','OG')] = 'FSLG'
+  # boiler.fuels$new.fuel[boiler.fuels$Reported.Fuel.Type.Code %in% c('NUC')] = 'NUC'
+  # boiler.fuels$new.fuel[boiler.fuels$Reported.Fuel.Type.Code %in% c('SUN')] = 'SUN'
+  # boiler.fuels$new.fuel[boiler.fuels$Reported.Fuel.Type.Code %in% c('WAT')] = 'WAT'
+  # boiler.fuels$new.fuel[boiler.fuels$Reported.Fuel.Type.Code %in% c('WND')] = 'WND'
+  # boiler.fuels$new.fuel[boiler.fuels$Reported.Fuel.Type.Code %in% c('OTH','PUR','WH')] = 'OTH'
+  
+  #remove old classifications and duplicate rows
+  # boiler.fuels[,c(3)] = NULL
+  # boiler.fuels = unique(boiler.fuels)  
+  
+  #merge with generator infos 
+  # info.bygenerator[,c(7:14,17)] = NULL
+  # info.bygenerator = unique(info.bygenerator)
+  # info.bygenerator = merge(info.bygenerator, boiler.fuels, all.x = TRUE, by.x = c('Plant.Id','Boiler.ID'), by.y=c('Plant.Id','Boiler.Id'))
+
+  #assign new prime mover types (splitting combined cycle into gas turbines and steam turbines)
+  info.bygenerator$new.pm[info.bygenerator$Reported.Prime.Mover %in% c('CS')] = 'CC'
+  info.bygenerator$new.pm[info.bygenerator$Reported.Prime.Mover %in% c('BA','CE','CP','ES','FW','PS', 'FC')] = 'ES'
+  info.bygenerator$new.pm[info.bygenerator$Reported.Prime.Mover %in% c('GT','IC','CT')] = 'GT'
+  info.bygenerator$new.pm[info.bygenerator$Reported.Prime.Mover %in% c('HA','HB','HK')] = 'HK'
+  info.bygenerator$new.pm[info.bygenerator$Reported.Prime.Mover %in% c('HY')] = 'HY'
+  info.bygenerator$new.pm[info.bygenerator$Reported.Prime.Mover %in% c('PV')] = 'PV'
+  info.bygenerator$new.pm[info.bygenerator$Reported.Prime.Mover %in% c('CA','ST')] = 'ST'
+  info.bygenerator$new.pm[info.bygenerator$Reported.Prime.Mover %in% c('BT')] = 'BT'
+  info.bygenerator$new.pm[info.bygenerator$Reported.Prime.Mover %in% c('WT','WS')] = 'WT'
+  info.bygenerator$new.pm[info.bygenerator$Reported.Prime.Mover %in% c('OT')] = 'OT'
+  
+  #assign new fuel types
+  info.bygenerator$new.fuel[info.bygenerator$Reported.Fuel.Type.Code %in% c('LFG','OBG')] = 'BMG'
+  info.bygenerator$new.fuel[info.bygenerator$Reported.Fuel.Type.Code %in% c('AB','BLQ','MSN','MSB','OBL','OBS','SLW','TDF','WDL','WDS')] = 'BM'
+  info.bygenerator$new.fuel[info.bygenerator$Reported.Fuel.Type.Code %in% c('BIT','DFO','JF','KER','LIG','PC','RC','RFO','SC','SUB','WC','WO')] = 'FSL'
+  info.bygenerator$new.fuel[info.bygenerator$Reported.Fuel.Type.Code %in% c('GEO')] = 'GEO'
+  info.bygenerator$new.fuel[info.bygenerator$Reported.Fuel.Type.Code %in% c('BFG','NG','PG','SGC','SGP','OG')] = 'FSLG'
+  info.bygenerator$new.fuel[info.bygenerator$Reported.Fuel.Type.Code %in% c('NUC')] = 'NUC'
+  info.bygenerator$new.fuel[info.bygenerator$Reported.Fuel.Type.Code %in% c('SUN')] = 'SUN'
+  info.bygenerator$new.fuel[info.bygenerator$Reported.Fuel.Type.Code %in% c('WAT')] = 'WAT'
+  info.bygenerator$new.fuel[info.bygenerator$Reported.Fuel.Type.Code %in% c('WND')] = 'WND'
+  info.bygenerator$new.fuel[info.bygenerator$Reported.Fuel.Type.Code %in% c('OTH','PUR','WH')] = 'OTH'
+  
+  generation.bycode = dcast(info.bygenerator, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'Net.Generation.(Megawatthours)', fun.aggregate = sum)
+  
+  #apply water use rates to all categories
+  coolingwater.bycode = generation.bycode
+  for(i in 2:101) {
+    #multiply each category by it's water consumption rate ***(make sure everything is in the right order!)
+    coolingwater.bycode[,i] = coolingwater.bycode[,i]*as.numeric(cooling.rates[i,6]) #water consumption = 6th column. in Gal/MWh
+  }
+  
+  #make a total water use column
+  coolingwater.bycode$total.consumption = rowSums(coolingwater.bycode[,c(2:102)])
+  
+  #make spredsheets for export to csv -- add PP locations for spatial join
+  electric.wc.gal = coolingwater.bycode[,c(1,103)]
+  electric.wc.gal = electric.wc.gal[which(electric.wc.gal$total.consumption > 0),] #keep only the plants consuming water
+  electric.wc.gal = merge(plant.locations, electric.wc.gal, all.y = TRUE, by.x = 'Plant.Code', by.y= 'Plant.Id')
+
+  electric.wc.m3 = electric.wc.gal
+  electric.wc.m3[,c(6)] = electric.wc.m3[,c(6)] / conversion.gal.m3
+  
+  write.csv(electric.wc.gal,'electric-wc-gal.csv',row.names = FALSE)
+  write.csv(electric.wc.m3, 'electric-wc-m3.csv',row.names = FALSE)
+  
