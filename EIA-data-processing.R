@@ -69,7 +69,7 @@ library(reshape2)
   #cooling water use rates 
   setwd(wd)
   cooling.rates = as.data.table(read.xlsx(coolinguse.file, sheet = 2, startRow = 1))
-  
+  cooling.rates.cc = as.data.table(read.xlsx(coolinguse.file, sheet = 3, startRow = 1))
   
 # define constants --------------------------------------------------------
 
@@ -322,27 +322,26 @@ library(reshape2)
   info.bygenerator[,c('Utility.ID','Utility.Name','Plant.Name.y', 'Steam.Plant.Type')] = NULL
   #info.bygenerator[,c(8:10,12)] = NULL #remove superfluous info
   
+  #grab cooling system type from schedule 8D
+  cooling.system = schedule.8d[,c('Plant.ID','Cooling.System.ID','Code')]
+  cooling.system = unique(cooling.system)
+  
   #grab cooling water type and quality from 860 data (merge with 923 data)
   cooling.system.m = merge(cooling.system, coolingwater.info, all.x=TRUE, by.x=c('Plant.ID','Cooling.System.ID'), by.y=c('Plant.Code','Cooling.ID'))
   cooling.system.m = cooling.system.m[,c(1:3,18:19)]
   coolingwater.type = dcast(cooling.system.m, Plant.ID+Cooling.System.ID~Water.Source.Code+Water.Type.Code, fun.aggregate = length)
   
-  #grab cooling system type from schedule 8D
-  cooling.system = schedule.8d[,c('Plant.ID','Cooling.System.ID','Code')]
-  cooling.system = unique(cooling.system)
+  #merge cooling info and gen info
   info.bygenerator = merge(info.bygenerator, cooling.system, all.x = TRUE, allow.cartesian= TRUE, by.x = c('Plant.Id','Cooling.ID'), by.y = c('Plant.ID','Cooling.System.ID'))
   info.bygen.water = merge(info.bygenerator, coolingwater.type, all.x=TRUE, by.x= c('Plant.Id', 'Cooling.ID'), by.y=c('Plant.ID', 'Cooling.System.ID'))
-  info.bygen.water[,12:22][is.na(info.bygen.water[,12:22])] = 0
+  info.bygen.water[,10:17][is.na(info.bygen.water[,10:17])] = 0
   
   #generation for each water type 
   info.bygen.water$DC_DC.gen = info.bygen.water$DC_DC*info.bygen.water$`Net.Generation.(Megawatthours)`
   info.bygen.water$GW_BR.gen = info.bygen.water$GW_BR*info.bygen.water$`Net.Generation.(Megawatthours)`
   info.bygen.water$GW_FR.gen = info.bygen.water$GW_FR*info.bygen.water$`Net.Generation.(Megawatthours)`
   info.bygen.water$GW_SA.gen = info.bygen.water$GW_SA*info.bygen.water$`Net.Generation.(Megawatthours)`
-  info.bygen.water$OT_OT.gen = info.bygen.water$OT_OT*info.bygen.water$`Net.Generation.(Megawatthours)`
-  info.bygen.water$PD_BE.gen = info.bygen.water$PD_BE*info.bygen.water$`Net.Generation.(Megawatthours)`
   info.bygen.water$PD_FR.gen = info.bygen.water$PD_FR*info.bygen.water$`Net.Generation.(Megawatthours)`
-  info.bygen.water$SW_BE.gen = info.bygen.water$SW_BE*info.bygen.water$`Net.Generation.(Megawatthours)`
   info.bygen.water$SW_BR.gen = info.bygen.water$SW_BR*info.bygen.water$`Net.Generation.(Megawatthours)`
   info.bygen.water$SW_FR.gen = info.bygen.water$SW_FR*info.bygen.water$`Net.Generation.(Megawatthours)`
   info.bygen.water$SW_SA.gen = info.bygen.water$SW_SA*info.bygen.water$`Net.Generation.(Megawatthours)`
@@ -379,13 +378,14 @@ library(reshape2)
   # info.bygenerator = merge(info.bygenerator, boiler.fuels, all.x = TRUE, by.x = c('Plant.Id','Boiler.ID'), by.y=c('Plant.Id','Boiler.Id'))
 
   #assign new prime mover types (splitting combined cycle into gas turbines and steam turbines)
-  info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('CS')] = 'CC'
+  info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('CS')] = 'CS'
   info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('BA','CE','CP','ES','FW','PS', 'FC')] = 'ES'
-  info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('GT','IC','CT')] = 'GT'
+  info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('GT','IC')] = 'GT'
   info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('HA','HB','HK')] = 'HK'
   info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('HY')] = 'HY'
   info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('PV')] = 'PV'
-  info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('CA','ST')] = 'ST'
+  info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('ST')] = 'ST'
+  info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('CA','CT')] = 'CC'
   info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('BT')] = 'BT'
   info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('WT','WS')] = 'WT'
   info.bygen.water$new.pm[info.bygen.water$Reported.Prime.Mover %in% c('OT')] = 'OT'
@@ -411,10 +411,7 @@ library(reshape2)
   generation.bycode.gwbr = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'GW_BR.gen', fun.aggregate = sum)
   generation.bycode.gwfr = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'GW_FR.gen', fun.aggregate = sum)
   generation.bycode.gwsa = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'GW_SA.gen', fun.aggregate = sum)
-  generation.bycode.otot = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'OT_OT.gen', fun.aggregate = sum)
-  generation.bycode.pdbe = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'PD_BE.gen', fun.aggregate = sum)
   generation.bycode.pdfr = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'PD_FR.gen', fun.aggregate = sum)
-  generation.bycode.swbe = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'SW_BE.gen', fun.aggregate = sum)
   generation.bycode.swbr = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'SW_BR.gen', fun.aggregate = sum)
   generation.bycode.swfr = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'SW_FR.gen', fun.aggregate = sum)
   generation.bycode.swsa = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'SW_SA.gen', fun.aggregate = sum)
@@ -426,63 +423,51 @@ library(reshape2)
   coolingwater.gwbr = generation.bycode.gwbr
   coolingwater.gwfr = generation.bycode.gwfr
   coolingwater.gwsa = generation.bycode.gwsa
-  coolingwater.otot = generation.bycode.otot
-  coolingwater.pdbe = generation.bycode.pdbe
   coolingwater.pdfr = generation.bycode.pdfr
-  coolingwater.swbe = generation.bycode.swbe
   coolingwater.swbr = generation.bycode.swbr
   coolingwater.swfr = generation.bycode.swfr
   coolingwater.swsa = generation.bycode.swsa
   
-  for(i in 2:101) {
+  for(i in 2:118) {
     #multiply each category by it's water consumption rate ***(make sure everything is in the right order!)
-    coolingwater.total[,i] = coolingwater.total[,i]*as.numeric(cooling.rates[i,7]) #water consumption = 7th column. in Gal/MWh
-    coolingwater.dcdc[,i] = generation.bycode.dcdc[,i]*as.numeric(cooling.rates[i,7])
-    coolingwater.gwbr[,i] = generation.bycode.gwbr[,i]*as.numeric(cooling.rates[i,7])
-    coolingwater.gwfr[,i] = generation.bycode.gwfr[,i]*as.numeric(cooling.rates[i,7])
-    coolingwater.gwsa[,i] = generation.bycode.gwsa[,i]*as.numeric(cooling.rates[i,7])
-    coolingwater.otot[,i] = generation.bycode.otot[,i]*as.numeric(cooling.rates[i,7])
-    coolingwater.pdbe[,i] = generation.bycode.pdbe[,i]*as.numeric(cooling.rates[i,7])
-    coolingwater.pdfr[,i] = generation.bycode.pdfr[,i]*as.numeric(cooling.rates[i,7])
-    coolingwater.swbe[,i] = generation.bycode.swbe[,i]*as.numeric(cooling.rates[i,7])
-    coolingwater.swbr[,i] = generation.bycode.swbr[,i]*as.numeric(cooling.rates[i,7])
-    coolingwater.swfr[,i] = generation.bycode.swfr[,i]*as.numeric(cooling.rates[i,7])
-    coolingwater.swsa[,i] = generation.bycode.swsa[,i]*as.numeric(cooling.rates[i,7])
+    coolingwater.total[,i] = coolingwater.total[,i]*as.numeric(cooling.rates.cc[i,7]) #water consumption = 7th column. in Gal/MWh
+    coolingwater.dcdc[,i] = generation.bycode.dcdc[,i]*as.numeric(cooling.rates.cc[i,7])
+    coolingwater.gwbr[,i] = generation.bycode.gwbr[,i]*as.numeric(cooling.rates.cc[i,7])
+    coolingwater.gwfr[,i] = generation.bycode.gwfr[,i]*as.numeric(cooling.rates.cc[i,7])
+    coolingwater.gwsa[,i] = generation.bycode.gwsa[,i]*as.numeric(cooling.rates.cc[i,7])
+    coolingwater.pdfr[,i] = generation.bycode.pdfr[,i]*as.numeric(cooling.rates.cc[i,7])
+    coolingwater.swbr[,i] = generation.bycode.swbr[,i]*as.numeric(cooling.rates.cc[i,7])
+    coolingwater.swfr[,i] = generation.bycode.swfr[,i]*as.numeric(cooling.rates.cc[i,7])
+    coolingwater.swsa[,i] = generation.bycode.swsa[,i]*as.numeric(cooling.rates.cc[i,7])
     }
   
   #make a total water use column
-  coolingwater.total$total.consumption = rowSums(coolingwater.total[,c(2:102)])
-  coolingwater.dcdc$dcdc.consumption = rowSums(coolingwater.dcdc[,c(2:102)]) 
-  coolingwater.gwbr$gwbr.consumption = rowSums(coolingwater.gwbr[,c(2:102)]) 
-  coolingwater.gwfr$gwfr.consumption = rowSums(coolingwater.gwfr[,c(2:102)])
-  coolingwater.gwsa$gwsa.consumption = rowSums(coolingwater.gwsa[,c(2:102)])
-  coolingwater.otot$otot.consumption = rowSums(coolingwater.otot[,c(2:102)]) 
-  coolingwater.pdbe$pdbe.consumption = rowSums(coolingwater.pdbe[,c(2:102)]) 
-  coolingwater.pdfr$pdfr.consumption = rowSums(coolingwater.pdfr[,c(2:102)])
-  coolingwater.swbe$swbe.consumption = rowSums(coolingwater.swbe[,c(2:102)])
-  coolingwater.swbr$swbr.consumption = rowSums(coolingwater.swbr[,c(2:102)])
-  coolingwater.swfr$swfr.consumption = rowSums(coolingwater.swfr[,c(2:102)])
-  coolingwater.swsa$swsa.consumption = rowSums(coolingwater.swsa[,c(2:102)])
+  coolingwater.total$total.consumption = rowSums(coolingwater.total[,c(2:119)])
+  coolingwater.dcdc$dcdc.consumption = rowSums(coolingwater.dcdc[,c(2:119)]) 
+  coolingwater.gwbr$gwbr.consumption = rowSums(coolingwater.gwbr[,c(2:119)]) 
+  coolingwater.gwfr$gwfr.consumption = rowSums(coolingwater.gwfr[,c(2:119)])
+  coolingwater.gwsa$gwsa.consumption = rowSums(coolingwater.gwsa[,c(2:119)])
+  coolingwater.pdfr$pdfr.consumption = rowSums(coolingwater.pdfr[,c(2:119)])
+  coolingwater.swbr$swbr.consumption = rowSums(coolingwater.swbr[,c(2:119)])
+  coolingwater.swfr$swfr.consumption = rowSums(coolingwater.swfr[,c(2:119)])
+  coolingwater.swsa$swsa.consumption = rowSums(coolingwater.swsa[,c(2:119)])
   
   #make spredsheets for export to csv -- add PP locations for spatial join
-  electric.wc.gal = coolingwater.total[,c(1,103)]
-  electric.wc.gal$dcdc.consumption = rowSums(coolingwater.dcdc[,c(2:102)]) 
-  electric.wc.gal$gwbr.consumption = rowSums(coolingwater.gwbr[,c(2:102)]) 
-  electric.wc.gal$gwfr.consumption = rowSums(coolingwater.gwfr[,c(2:102)])
-  electric.wc.gal$gwsa.consumption = rowSums(coolingwater.gwsa[,c(2:102)])
-  electric.wc.gal$otot.consumption = rowSums(coolingwater.otot[,c(2:102)]) 
-  electric.wc.gal$pdbe.consumption = rowSums(coolingwater.pdbe[,c(2:102)]) 
-  electric.wc.gal$pdfr.consumption = rowSums(coolingwater.pdfr[,c(2:102)])
-  electric.wc.gal$swbe.consumption = rowSums(coolingwater.swbe[,c(2:102)])
-  electric.wc.gal$swbr.consumption = rowSums(coolingwater.swbr[,c(2:102)])
-  electric.wc.gal$swfr.consumption = rowSums(coolingwater.swfr[,c(2:102)])
-  electric.wc.gal$swsa.consumption = rowSums(coolingwater.swsa[,c(2:102)])
+  electric.wc.gal = coolingwater.total[,c(1,120)]
+  electric.wc.gal$dcdc.consumption = rowSums(coolingwater.dcdc[,c(2:120)]) 
+  electric.wc.gal$gwbr.consumption = rowSums(coolingwater.gwbr[,c(2:120)]) 
+  electric.wc.gal$gwfr.consumption = rowSums(coolingwater.gwfr[,c(2:120)])
+  electric.wc.gal$gwsa.consumption = rowSums(coolingwater.gwsa[,c(2:120)])
+  electric.wc.gal$pdfr.consumption = rowSums(coolingwater.pdfr[,c(2:120)])
+  electric.wc.gal$swbr.consumption = rowSums(coolingwater.swbr[,c(2:120)])
+  electric.wc.gal$swfr.consumption = rowSums(coolingwater.swfr[,c(2:120)])
+  electric.wc.gal$swsa.consumption = rowSums(coolingwater.swsa[,c(2:120)])
   #electric.totalwc.gal = electric.totalwc.gal[which(electric.totalwc.gal$total.consumption > 0),] #keep only the plants consuming water
   electric.wc.gal = merge(plant.locations, electric.wc.gal, all.y = TRUE, by.x = 'Plant.Code', by.y= 'Plant.Id')
   electric.wc.gal = merge(electric.wc.gal, pp.generation, all.x=TRUE, by.x='Plant.Code',by.y='Plant.Id')
   
   electric.wc.m3 = electric.wc.gal
-  electric.wc.m3[,c(6:17)] = electric.wc.m3[,c(6:17)] / conversion.gal.m3
+  electric.wc.m3[,c(6:15)] = electric.wc.m3[,c(6:15)] / conversion.gal.m3
   
   write.csv(electric.wc.gal,'electric-wc-gal.csv',row.names = FALSE)
   write.csv(electric.wc.m3, 'electric-wc-m3.csv',row.names = FALSE)
