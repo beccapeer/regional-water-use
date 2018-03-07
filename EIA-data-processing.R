@@ -117,7 +117,8 @@ library(reshape2)
   
 #pivoting for generation (by power plant)
   plant.generation = dcast(page1.gensandfuel, Plant.Id~Reported.Fuel.Type.Code, value.var = 'Net.Generation.(Megawatthours)', fun.aggregate = sum)
-
+  plant.generation$total.gen = rowSums(plant.generation[,c(-1)])
+  
 #pivotting reported fuel use for coal by coal type and coal mine state
   #keep the records for coal purchases only (too many pipelines to track NG and Oil)
   purchased.coal = page5.purchasedfuel[which(page5.purchasedfuel$FUEL_GROUP=="Coal"),]
@@ -328,6 +329,7 @@ library(reshape2)
   pe.water.consumption$swfr = pe.swfr.wc[,25]
   pe.water.consumption$swnro = pe.swnro.wc[,25]
   pe.water.consumption$swsa = pe.swsa.wc[,25]
+  pe.water.consumption = merge(pe.water.consumption, plant.generation[,c(1,43)], all.x=TRUE, by.x = 'Plant.Code', by.y='Plant.Id')
   
   
   # total.wc.m3 = primary.energy.mmbtu[,c(1:5)] #power plant names, id, and location
@@ -358,7 +360,7 @@ library(reshape2)
   # total.wc.gal = total.wc.m3
   # total.wc.gal[,c(6:25)] =total.wc.gal[,c(6:25)] * conversion.gal.m3
   
-  #set up dataframe for exporting water use to csv file (for GIS!)
+  #set up dataframe for exporting water use to csv files (for GIS!)
   # wc.pe.m3 = total.wc.m3[,c(1:5,25)]
   # wc.pe.gal = total.wc.gal[,c(1:5,25)]
   wc.pe.m3 = pe.water.consumption
