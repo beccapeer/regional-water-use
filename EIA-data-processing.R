@@ -57,14 +57,16 @@ library(reshape2)
   #setwd('~')
   #primary energy water use rates
   setwd(wd)
-  all.wc = as.data.table(read.xlsx(wateruse.file, sheet = 1, startRow = 2)) #total water consumption
-  ground.wc = as.data.table(read.xlsx(wateruse.file, sheet = 3, startRow = 2)) #groundwater consumption
-  surface.wc = as.data.table(read.xlsx(wateruse.file, sheet = 5, startRow = 2)) #surface water consumption
-  reuse.wc = as.data.table(read.xlsx(wateruse.file, sheet = 7, startRow = 2)) #reuse water consumption
-  fresh.wc = as.data.table(read.xlsx(wateruse.file, sheet = 9, startRow = 2)) #freshwater consumption
-  brackish.wc = as.data.table(read.xlsx(wateruse.file, sheet = 11, startRow = 2)) #brackish water consumption
-  saline.wc = as.data.table(read.xlsx(wateruse.file, sheet = 13, startRow = 2)) #saline water consumption
-  notRO.wc = as.data.table(read.xlsx(wateruse.file, sheet = 15, startRow = 2)) #not RO-treatable water consumption
+  pe.wateruse = as.data.table(read.xlsx(wateruse.file, sheet =1, startRow = 1)) #fuels in rows, water types in columns - units of GJ/m^3
+  #old file set up
+  # all.wc = as.data.table(read.xlsx(wateruse.file, sheet = 1, startRow = 2)) #total water consumption
+  # ground.wc = as.data.table(read.xlsx(wateruse.file, sheet = 3, startRow = 2)) #groundwater consumption
+  # surface.wc = as.data.table(read.xlsx(wateruse.file, sheet = 5, startRow = 2)) #surface water consumption
+  # reuse.wc = as.data.table(read.xlsx(wateruse.file, sheet = 7, startRow = 2)) #reuse water consumption
+  # fresh.wc = as.data.table(read.xlsx(wateruse.file, sheet = 9, startRow = 2)) #freshwater consumption
+  # brackish.wc = as.data.table(read.xlsx(wateruse.file, sheet = 11, startRow = 2)) #brackish water consumption
+  # saline.wc = as.data.table(read.xlsx(wateruse.file, sheet = 13, startRow = 2)) #saline water consumption
+  # notRO.wc = as.data.table(read.xlsx(wateruse.file, sheet = 15, startRow = 2)) #not RO-treatable water consumption
 
   #cooling water use rates 
   setwd(wd)
@@ -175,6 +177,7 @@ library(reshape2)
 #calculate total fuel consumption (MMBTU) for each fuel category defined by EG
   plant.locations = plantinfo[,c(3,4,7,10,11)]
   fuel.categories$Plant.Id = reported.fuels[,c(1)]
+  fuel.categories = as.data.frame(fuel.categories)
 
   ##individually deal with power plants that report "other" fuel classifications 
   other.fuels = reported.fuels[,c("Plant.Id","OTH","PUR","WH")] #gather all plants for "other" fuel categories
@@ -242,68 +245,130 @@ library(reshape2)
   reported.fuels.m[is.na(reported.fuels.m)] = 0
   
   ##reassign feul categories (EG's fuel categories)
-  fuel.categories$Hydropower = reported.fuels.m[,c("WAT")]
-  fuel.categories$Solar = reported.fuels.m[,c("SUN")]
-  fuel.categories$Solar.Thermal = reported.fuels.m[,c("SUNT")]
-  fuel.categories$Wind = reported.fuels.m[,c("WND")]
-  fuel.categories$Geothermal = reported.fuels.m[,c("GEO")]
-  fuel.categories$Solid.Biomass.RDF = rowSums(reported.fuels.m[,c("AB","BLQ","MSN","MSB","OBL","OBS","SLW","TDF","WDL","WDS","OBRDF")])
-  fuel.categories$Biogas= rowSums(reported.fuels.m[,c("LFG","OBG")])
   fuel.categories$Oil = rowSums(reported.fuels.m[,c("DFO","JF","KER","PC","PG","RFO","SGP","WO","OOIL")])
-  fuel.categories$Natural.Gas = rowSums(reported.fuels.m[,c("NG", "OG","ONG")])
-  fuel.categories$Uranium = reported.fuels.m[,c("NUC")]
-  fuel.categories$Lignite.Coal.gfc = reported.fuels.m[,c("GFC_LIG")]
-  fuel.categories$Lignite.Coal.ngp = reported.fuels.m[,c("NGP_LIG")]
-  fuel.categories$Bituminous.Coal.avg = rowSums(reported.fuels.m[,c("OTH_BIT","BFG","RC","SC","SGC","WC","OBIT")])
+  fuel.categories$Subbituminous.Coal.ngp = reported.fuels.m[,c("NGP_SUB")]
   fuel.categories$Bituminous.Coal.app = reported.fuels.m[,c("APP_BIT")]
   fuel.categories$Bituminous.Coal.int = reported.fuels.m[,c("INT_BIT")]
   fuel.categories$Bituminous.Coal.rmr = reported.fuels.m[,c("RMR_BIT")]
-  fuel.categories$Subbituminous.Coal.avg = rowSums(reported.fuels.m[,c("OTH_SUB", "OSUB")])
-  fuel.categories$Subbituminous.Coal.ngp = reported.fuels.m[,c("NGP_SUB")]
+  fuel.categories$Lignite.Coal.gfc = reported.fuels.m[,c("GFC_LIG")]
+  fuel.categories$Lignite.Coal.ngp = reported.fuels.m[,c("NGP_LIG")]
+  fuel.categories$Natural.Gas = rowSums(reported.fuels.m[,c("NG", "OG","ONG")])
+  fuel.categories$Uranium = reported.fuels.m[,c("NUC")]
+  fuel.categories$Hydropower = reported.fuels.m[,c("WAT")]
+  fuel.categories$Wind = reported.fuels.m[,c("WND")]
+  fuel.categories$Solid.Biomass.RDF = rowSums(reported.fuels.m[,c("AB","BLQ","MSN","MSB","OBL","OBS","SLW","TDF","WDL","WDS","OBRDF")])
+  fuel.categories$Biogas= rowSums(reported.fuels.m[,c("LFG","OBG")])
+  fuel.categories$Geothermal = reported.fuels.m[,c("GEO")]
+  fuel.categories$Solar = reported.fuels.m[,c("SUN")]
+  fuel.categories$Solar.Thermal = reported.fuels.m[,c("SUNT")]
   fuel.categories$Subbituminous.Coal.rmr = reported.fuels.m[,c("RMR_SUB")]
-  #fuel.categories$Unknown = reported.fuels.m[,c("UNK")]
+  fuel.categories$Bituminous.Coal.avg = rowSums(reported.fuels.m[,c("OTH_BIT","BFG","RC","SC","SGC","WC","OBIT")])
+  fuel.categories$Subbituminous.Coal.avg = rowSums(reported.fuels.m[,c("OTH_SUB", "OSUB")])
     
   ##merge plant.locations with fuel.categories for primary energy MMBTU dataframe
   primary.energy.mmbtu = merge(x=plant.locations, y=fuel.categories, all.x=TRUE, by.x="Plant.Code", by.y="Plant.Id")
+  primary.energy.mmbtu[,6:24][is.na(primary.energy.mmbtu[,6:24])] = 0
   
-
 #calculate water consumption for each primary energy by power plant
-  total.wc.m3 = primary.energy.mmbtu[,c(1:5)] #power plant names, id, and location
-  total.wc.m3$Hydropower = primary.energy.mmbtu[,c("Hydropower")]*wat.tot.wc
-  total.wc.m3$Solar = primary.energy.mmbtu[,c("Solar")]*spv.tot.wc
-  total.wc.m3$Solar.Thermal = primary.energy.mmbtu[,c("Solar.Thermal")]*sth.tot.wc
-  total.wc.m3$Wind = primary.energy.mmbtu[,c("Wind")]*wnd.tot.wc
-  total.wc.m3$Geothermal = primary.energy.mmbtu[,c("Geothermal")]*geo.tot.wc
-  total.wc.m3$Solid.Biomass.RDF = primary.energy.mmbtu[,c("Solid.Biomass.RDF")]*brdf.tot.wc
-  total.wc.m3$Biogas = primary.energy.mmbtu[,c("Biogas")]*bg.tot.wc
-  total.wc.m3$Oil = primary.energy.mmbtu[,c("Oil")]*oil.tot.wc
-  total.wc.m3$Natural.Gas = primary.energy.mmbtu[,c("Natural.Gas")]*ng.tot.wc
-  total.wc.m3$Uranium = primary.energy.mmbtu[,c("Uranium")]*ur.tot.wc
-  total.wc.m3$Lignite.Coal.gfc = primary.energy.mmbtu[,c("Lignite.Coal.gfc")]*lig.gfc.tot.wc
-  total.wc.m3$Ligite.Coal.ngp = primary.energy.mmbtu[,c("Lignite.Coal.ngp")]*lig.ngp.tot.wc
-  total.wc.m3$Bituminous.Coal.avg = primary.energy.mmbtu[,c("Bituminous.Coal.avg")]*bit.avg.tot.wc
-  total.wc.m3$Bituminous.Coal.app = primary.energy.mmbtu[,c("Bituminous.Coal.app")]*bit.app.tot.wc
-  total.wc.m3$Bituminous.Coal.int = primary.energy.mmbtu[,c("Bituminous.Coal.int")]*bit.int.tot.wc
-  total.wc.m3$Bituminous.Coal.rmr = primary.energy.mmbtu[,c("Bituminous.Coal.rmr")]*bit.rmr.tot.wc
-  total.wc.m3$Subbituminous.Coal.avg = primary.energy.mmbtu[,c("Subbituminous.Coal.avg")]*sub.avg.tot.wc
-  total.wc.m3$Subbituminous.Coal.ngp = primary.energy.mmbtu[,c("Subbituminous.Coal.ngp")]*sub.ngp.tot.wc
-  total.wc.m3$Subbituminous.Coal.rmr = primary.energy.mmbtu[,c("Subbituminous.Coal.rmr")]*sub.rmr.tot.wc
+  pe.total.wc = as.data.frame(primary.energy.mmbtu)
+  pe.gwbr.wc = as.data.frame(primary.energy.mmbtu)
+  pe.gwfr.wc = as.data.frame(primary.energy.mmbtu)
+  pe.gwnro.wc = as.data.frame(primary.energy.mmbtu)
+  pe.gwsa.wc = as.data.frame(primary.energy.mmbtu)
+  pe.pdbr.wc = as.data.frame(primary.energy.mmbtu)
+  pe.pdfr.wc = as.data.frame(primary.energy.mmbtu)
+  pe.pdnro.wc = as.data.frame(primary.energy.mmbtu)
+  pe.pdsa.wc = as.data.frame(primary.energy.mmbtu)
+  pe.swbr.wc = as.data.frame(primary.energy.mmbtu)
+  pe.swfr.wc = as.data.frame(primary.energy.mmbtu)
+  pe.swnro.wc = as.data.frame(primary.energy.mmbtu)
+  pe.swsa.wc = as.data.frame(primary.energy.mmbtu)
   
-  #calculate total water embedded in primary energy by power plant
-  total.wc.m3$total.wc = rowSums(total.wc.m3[,c(6:24)])
-  total.wc.m3[is.na(total.wc.m3)] = 0
-  total.wc.m3 = total.wc.m3[which(total.wc.m3$total.wc > 0),]
-  total.wc.gal = total.wc.m3
-  total.wc.gal[,c(6:25)] =total.wc.gal[,c(6:25)] * conversion.gal.m3
+  for(i in 1:19){
+    pe.total.wc[,5+i] = pe.total.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.gwbr.wc[,5+i] = pe.gwbr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.gwfr.wc[,5+i] =  pe.gwfr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.gwnro.wc[,5+i] = pe.gwnro.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.gwsa.wc[,5+i] =  pe.gwsa.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.pdbr.wc[,5+i] =  pe.pdbr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.pdfr.wc[,5+i] =  pe.pdfr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.pdnro.wc[,5+i] = pe.pdnro.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.pdsa.wc[,5+i] =  pe.pdsa.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.swbr.wc[,5+i] =  pe.swbr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.swfr.wc[,5+i] =  pe.swfr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.swnro.wc[,5+i] = pe.swnro.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.swsa.wc[,5+i] =  pe.swsa.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+  }
+  
+  #create total water consumption columns
+  pe.total.wc$total.consumption = rowSums(pe.total.wc[,c(6:24)]) 
+  pe.gwbr.wc$total.consumption= rowSums(pe.gwbr.wc[,c(6:24)]) 
+  pe.gwfr.wc$total.consumption= rowSums(pe.gwfr.wc[,c(6:24)]) 
+  pe.gwnro.wc$total.consumption= rowSums(pe.gwnro.wc[,c(6:24)]) 
+  pe.gwsa.wc$total.consumption= rowSums(pe.gwsa.wc[,c(6:24)]) 
+  pe.pdbr.wc$total.consumption= rowSums(pe.pdbr.wc[,c(6:24)]) 
+  pe.pdfr.wc$total.consumption= rowSums(pe.pdfr.wc[,c(6:24)]) 
+  pe.pdnro.wc$total.consumption= rowSums(pe.pdnro.wc[,c(6:24)]) 
+  pe.pdsa.wc$total.consumption= rowSums(pe.pdsa.wc[,c(6:24)]) 
+  pe.swbr.wc$total.consumption= rowSums(pe.swbr.wc[,c(6:24)]) 
+  pe.swfr.wc$total.consumption= rowSums(pe.swfr.wc[,c(6:24)]) 
+  pe.swnro.wc$total.consumption= rowSums(pe.swnro.wc[,c(6:24)]) 
+  pe.swsa.wc$total.consumption= rowSums(pe.swsa.wc[,c(6:24)]) 
+  
+  pe.water.consumption = pe.total.wc[,c(1:5,25)]
+  pe.water.consumption$gwbr = pe.gwbr.wc[,25]
+  pe.water.consumption$gwfr = pe.gwfr.wc[,25]
+  pe.water.consumption$gwnro = pe.gwnro.wc[,25]
+  pe.water.consumption$gwsa = pe.gwsa.wc[,25]
+  pe.water.consumption$pdbr = pe.pdbr.wc[,25]
+  pe.water.consumption$pdfr = pe.pdfr.wc[,25]
+  pe.water.consumption$pdnro = pe.pdnro.wc[,25]
+  pe.water.consumption$pdsa = pe.pdsa.wc[,25]
+  pe.water.consumption$swbr = pe.swbr.wc[,25]
+  pe.water.consumption$swfr = pe.swfr.wc[,25]
+  pe.water.consumption$swnro = pe.swnro.wc[,25]
+  pe.water.consumption$swsa = pe.swsa.wc[,25]
+  
+  
+  # total.wc.m3 = primary.energy.mmbtu[,c(1:5)] #power plant names, id, and location
+  # total.wc.m3$Hydropower = primary.energy.mmbtu[,c("Hydropower")]*wat.tot.wc
+  # total.wc.m3$Solar = primary.energy.mmbtu[,c("Solar")]*spv.tot.wc
+  # total.wc.m3$Solar.Thermal = primary.energy.mmbtu[,c("Solar.Thermal")]*sth.tot.wc
+  # total.wc.m3$Wind = primary.energy.mmbtu[,c("Wind")]*wnd.tot.wc
+  # total.wc.m3$Geothermal = primary.energy.mmbtu[,c("Geothermal")]*geo.tot.wc
+  # total.wc.m3$Solid.Biomass.RDF = primary.energy.mmbtu[,c("Solid.Biomass.RDF")]*brdf.tot.wc
+  # total.wc.m3$Biogas = primary.energy.mmbtu[,c("Biogas")]*bg.tot.wc
+  # total.wc.m3$Oil = primary.energy.mmbtu[,c("Oil")]*oil.tot.wc
+  # total.wc.m3$Natural.Gas = primary.energy.mmbtu[,c("Natural.Gas")]*ng.tot.wc
+  # total.wc.m3$Uranium = primary.energy.mmbtu[,c("Uranium")]*ur.tot.wc
+  # total.wc.m3$Lignite.Coal.gfc = primary.energy.mmbtu[,c("Lignite.Coal.gfc")]*lig.gfc.tot.wc
+  # total.wc.m3$Ligite.Coal.ngp = primary.energy.mmbtu[,c("Lignite.Coal.ngp")]*lig.ngp.tot.wc
+  # total.wc.m3$Bituminous.Coal.avg = primary.energy.mmbtu[,c("Bituminous.Coal.avg")]*bit.avg.tot.wc
+  # total.wc.m3$Bituminous.Coal.app = primary.energy.mmbtu[,c("Bituminous.Coal.app")]*bit.app.tot.wc
+  # total.wc.m3$Bituminous.Coal.int = primary.energy.mmbtu[,c("Bituminous.Coal.int")]*bit.int.tot.wc
+  # total.wc.m3$Bituminous.Coal.rmr = primary.energy.mmbtu[,c("Bituminous.Coal.rmr")]*bit.rmr.tot.wc
+  # total.wc.m3$Subbituminous.Coal.avg = primary.energy.mmbtu[,c("Subbituminous.Coal.avg")]*sub.avg.tot.wc
+  # total.wc.m3$Subbituminous.Coal.ngp = primary.energy.mmbtu[,c("Subbituminous.Coal.ngp")]*sub.ngp.tot.wc
+  # total.wc.m3$Subbituminous.Coal.rmr = primary.energy.mmbtu[,c("Subbituminous.Coal.rmr")]*sub.rmr.tot.wc
+  # 
+  # #calculate total water embedded in primary energy by power plant
+  # total.wc.m3$total.wc = rowSums(total.wc.m3[,c(6:24)])
+  # total.wc.m3[is.na(total.wc.m3)] = 0
+  # total.wc.m3 = total.wc.m3[which(total.wc.m3$total.wc > 0),]
+  # total.wc.gal = total.wc.m3
+  # total.wc.gal[,c(6:25)] =total.wc.gal[,c(6:25)] * conversion.gal.m3
   
   #set up dataframe for exporting water use to csv file (for GIS!)
-  wc.pe.m3 = total.wc.m3[,c(1:5,25)]
-  wc.pe.gal = total.wc.gal[,c(1:5,25)]
+  # wc.pe.m3 = total.wc.m3[,c(1:5,25)]
+  # wc.pe.gal = total.wc.gal[,c(1:5,25)]
+  wc.pe.m3 = pe.water.consumption
+  wc.pe.gal = wc.pe.m3
+  wc.pe.gal[,c(6:18)] = wc.pe.gal[,c(6:18)]*conversion.gal.m3
   
   #export files to csv
-  write.csv(total.wc.m3, 'total-wc-by-fuel-m3.csv', row.names = FALSE)
+  # write.csv(total.wc.m3, 'total-wc-by-fuel-m3.csv', row.names = FALSE)
   write.csv(wc.pe.m3, 'water-consumption-pe-m3.csv', row.names = FALSE)
-  write.csv(total.wc.gal, 'total-wc-by-fuel-gal.csv', row.names = FALSE)
+  # write.csv(total.wc.gal, 'total-wc-by-fuel-gal.csv', row.names = FALSE)
   write.csv(wc.pe.gal, 'water-consumption-pe-gal.csv', row.names = FALSE)
   
   
