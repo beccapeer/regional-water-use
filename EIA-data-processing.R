@@ -287,18 +287,18 @@ library(reshape2)
   
   for(i in 1:19){
     pe.total.wc[,5+i] = pe.total.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.gwbr.wc[,5+i] = pe.gwbr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.gwfr.wc[,5+i] =  pe.gwfr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.gwnro.wc[,5+i] = pe.gwnro.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.gwsa.wc[,5+i] =  pe.gwsa.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.pdbr.wc[,5+i] =  pe.pdbr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.pdfr.wc[,5+i] =  pe.pdfr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.pdnro.wc[,5+i] = pe.pdnro.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.pdsa.wc[,5+i] =  pe.pdsa.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.swbr.wc[,5+i] =  pe.swbr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.swfr.wc[,5+i] =  pe.swfr.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.swnro.wc[,5+i] = pe.swnro.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.swsa.wc[,5+i] =  pe.swsa.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
+    pe.gwbr.wc[,5+i] = pe.gwbr.wc[,5+i]*as.numeric(pe.wateruse[i,3]*conversion.gj.mmbtu)
+    pe.gwfr.wc[,5+i] =  pe.gwfr.wc[,5+i]*as.numeric(pe.wateruse[i,4]*conversion.gj.mmbtu)
+    pe.gwnro.wc[,5+i] = pe.gwnro.wc[,5+i]*as.numeric(pe.wateruse[i,5]*conversion.gj.mmbtu)
+    pe.gwsa.wc[,5+i] =  pe.gwsa.wc[,5+i]*as.numeric(pe.wateruse[i,6]*conversion.gj.mmbtu)
+    pe.pdbr.wc[,5+i] =  pe.pdbr.wc[,5+i]*as.numeric(pe.wateruse[i,7]*conversion.gj.mmbtu)
+    pe.pdfr.wc[,5+i] =  pe.pdfr.wc[,5+i]*as.numeric(pe.wateruse[i,8]*conversion.gj.mmbtu)
+    pe.pdnro.wc[,5+i] = pe.pdnro.wc[,5+i]*as.numeric(pe.wateruse[i,9]*conversion.gj.mmbtu)
+    pe.pdsa.wc[,5+i] =  pe.pdsa.wc[,5+i]*as.numeric(pe.wateruse[i,10]*conversion.gj.mmbtu)
+    pe.swbr.wc[,5+i] =  pe.swbr.wc[,5+i]*as.numeric(pe.wateruse[i,11]*conversion.gj.mmbtu)
+    pe.swfr.wc[,5+i] =  pe.swfr.wc[,5+i]*as.numeric(pe.wateruse[i,12]*conversion.gj.mmbtu)
+    pe.swnro.wc[,5+i] = pe.swnro.wc[,5+i]*as.numeric(pe.wateruse[i,13]*conversion.gj.mmbtu)
+    pe.swsa.wc[,5+i] =  pe.swsa.wc[,5+i]*as.numeric(pe.wateruse[i,14]*conversion.gj.mmbtu)
   }
   
   #create total water consumption columns
@@ -363,17 +363,24 @@ library(reshape2)
   #set up dataframe for exporting water use to csv files (for GIS!)
   # wc.pe.m3 = total.wc.m3[,c(1:5,25)]
   # wc.pe.gal = total.wc.gal[,c(1:5,25)]
+  #total volume
   wc.pe.m3 = pe.water.consumption
   wc.pe.gal = wc.pe.m3
   wc.pe.gal[,c(6:18)] = wc.pe.gal[,c(6:18)]*conversion.gal.m3
+  #intensity
+  wc.pe.m3MWh = wc.pe.m3
+  wc.pe.m3MWh[,c(6:18)] = wc.pe.m3MWh[,c(6:18)]/wc.pe.m3MWh[,19]
+  wc.pe.galMWh = wc.pe.gal
+  wc.pe.galMWh[,c(6:18)] = wc.pe.galMWh[,c(6:18)]/wc.pe.galMWh[,19]
   
   #export files to csv
   # write.csv(total.wc.m3, 'total-wc-by-fuel-m3.csv', row.names = FALSE)
   write.csv(wc.pe.m3, 'water-consumption-pe-m3.csv', row.names = FALSE)
+  write.csv(wc.pe.m3MWh, 'water-consumption-pe-m3MWh.csv', row.names = FALSE)
   # write.csv(total.wc.gal, 'total-wc-by-fuel-gal.csv', row.names = FALSE)
   write.csv(wc.pe.gal, 'water-consumption-pe-gal.csv', row.names = FALSE)
-  
-  
+  write.csv(wc.pe.galMWh, 'water-consumption-pe-galMWh.csv', row.names = FALSE)
+
   
 # Electricity water use ---------------------------------------------------
 
@@ -534,8 +541,15 @@ library(reshape2)
   electric.wc.gal = merge(electric.wc.gal, pp.generation, all.x=TRUE, by.x='Plant.Code',by.y='Plant.Id')
   
   electric.wc.m3 = electric.wc.gal
-  electric.wc.m3[,c(6:15)] = electric.wc.m3[,c(6:15)] / conversion.gal.m3
+  electric.wc.m3[,c(6:14)] = electric.wc.m3[,c(6:14)] / conversion.gal.m3
+  
+  electric.wc.galMWh = as.data.frame(electric.wc.gal)
+  electric.wc.galMWh[,c(6:14)] = electric.wc.galMWh[,c(6:14)]/electric.wc.galMWh[,15]
+  electric.wc.m3MWh = as.data.frame(electric.wc.m3)
+  electric.wc.m3MWh[,c(6:14)] = electric.wc.m3MWh[,c(6:14)]/electric.wc.m3MWh[,15]
   
   write.csv(electric.wc.gal,'electric-wc-gal.csv',row.names = FALSE)
+  write.csv(electric.wc.galMWh, 'electric-wc-galMWh.csv', row.names = FALSE)
   write.csv(electric.wc.m3, 'electric-wc-m3.csv',row.names = FALSE)
+  write.csv(electric.wc.m3MWh, 'electric-wc-m3MWh.csv', row.names = FALSE)
   
