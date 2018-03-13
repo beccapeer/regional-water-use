@@ -490,6 +490,16 @@ library(reshape2)
   generation.bycode.swfr = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'SW_FR.gen', fun.aggregate = sum)
   generation.bycode.swsa = dcast(info.bygen.water, Plant.Id~new.fuel+new.pm+Code+Combined.Heat.And.Power.Plant, value.var = 'SW_SA.gen', fun.aggregate = sum)
   
+  #double check generation separation by water type (hydro not included in water type gen)
+  pp.generation$dcdc.gen = rowSums(generation.bycode.dcdc[,-1])
+  pp.generation$gwbr.gen = rowSums(generation.bycode.gwbr[,-1])
+  pp.generation$gwfr.gen = rowSums(generation.bycode.gwfr[,-1])
+  pp.generation$gwsa.gen = rowSums(generation.bycode.gwsa[,-1])
+  pp.generation$pdfr.gen = rowSums(generation.bycode.pdfr[,-1])
+  pp.generation$swbr.gen = rowSums(generation.bycode.swbr[,-1])
+  pp.generation$swfr.gen = rowSums(generation.bycode.swfr[,-1])
+  pp.generation$swsa.gen = rowSums(generation.bycode.swsa[,-1])
+
   
   #apply water use rates to all categories
   coolingwater.total = generation.bycode.total
@@ -528,17 +538,17 @@ library(reshape2)
   
   #make spredsheets for export to csv -- add PP locations for spatial join
   electric.wc.gal = coolingwater.total[,c(1,120)]
-  electric.wc.gal$dcdc.consumption = rowSums(coolingwater.dcdc[,c(2:120)]) 
-  electric.wc.gal$gwbr.consumption = rowSums(coolingwater.gwbr[,c(2:120)]) 
-  electric.wc.gal$gwfr.consumption = rowSums(coolingwater.gwfr[,c(2:120)])
-  electric.wc.gal$gwsa.consumption = rowSums(coolingwater.gwsa[,c(2:120)])
-  electric.wc.gal$pdfr.consumption = rowSums(coolingwater.pdfr[,c(2:120)])
-  electric.wc.gal$swbr.consumption = rowSums(coolingwater.swbr[,c(2:120)])
-  electric.wc.gal$swfr.consumption = rowSums(coolingwater.swfr[,c(2:120)])
-  electric.wc.gal$swsa.consumption = rowSums(coolingwater.swsa[,c(2:120)])
+  electric.wc.gal$dcdc.consumption = rowSums(coolingwater.dcdc[,c(2:119)]) 
+  electric.wc.gal$gwbr.consumption = rowSums(coolingwater.gwbr[,c(2:119)]) 
+  electric.wc.gal$gwfr.consumption = rowSums(coolingwater.gwfr[,c(2:119)])
+  electric.wc.gal$gwsa.consumption = rowSums(coolingwater.gwsa[,c(2:119)])
+  electric.wc.gal$pdfr.consumption = rowSums(coolingwater.pdfr[,c(2:119)])
+  electric.wc.gal$swbr.consumption = rowSums(coolingwater.swbr[,c(2:119)])
+  electric.wc.gal$swfr.consumption = rowSums(coolingwater.swfr[,c(2:119)])
+  electric.wc.gal$swsa.consumption = rowSums(coolingwater.swsa[,c(2:119)])
   #electric.totalwc.gal = electric.totalwc.gal[which(electric.totalwc.gal$total.consumption > 0),] #keep only the plants consuming water
   electric.wc.gal = merge(plant.locations, electric.wc.gal, all.y = TRUE, by.x = 'Plant.Code', by.y= 'Plant.Id')
-  electric.wc.gal = merge(electric.wc.gal, pp.generation, all.x=TRUE, by.x='Plant.Code',by.y='Plant.Id')
+  electric.wc.gal = merge(electric.wc.gal, pp.generation[,1:2], all.x=TRUE, by.x='Plant.Code',by.y='Plant.Id')
   
   electric.wc.m3 = electric.wc.gal
   electric.wc.m3[,c(6:14)] = electric.wc.m3[,c(6:14)] / conversion.gal.m3
