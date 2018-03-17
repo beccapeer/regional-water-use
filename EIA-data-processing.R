@@ -363,7 +363,19 @@ library(reshape2)
   #set up dataframe for exporting water use to csv files (for GIS!)
   # wc.pe.m3 = total.wc.m3[,c(1:5,25)]
   # wc.pe.gal = total.wc.gal[,c(1:5,25)]
-  #total volume
+  
+  #total volume by fuel type
+  wc.pe.m3.byfuel = pe.total.wc
+  wc.pe.m3.byfuel = merge(wc.pe.m3.byfuel, plant.generation[,c(1,43)], all.x=TRUE, by.x = 'Plant.Code', by.y='Plant.Id')
+  wc.pe.m3MWh.byfuel = wc.pe.m3.byfuel
+  wc.pe.m3MWh.byfuel[,c(6:25)] = wc.pe.m3MWh.byfuel[,c(6:25)]/wc.pe.m3MWh.byfuel[,26]
+  
+  wc.pe.gal.byfuel = wc.pe.m3.byfuel
+  wc.pe.gal.byfuel[,c(6:25)] = wc.pe.gal.byfuel[,c(6:25)] * conversion.gal.m3
+  wc.pe.galMWh.byfuel = wc.pe.gal.byfuel
+  wc.pe.galMWh.byfuel[,c(6:25)] = wc.pe.galMWh.byfuel[,c(6:25)]/wc.pe.galMWh.byfuel[,26]
+  
+  #total volume by water type 
   wc.pe.m3 = pe.water.consumption
   wc.pe.gal = wc.pe.m3
   wc.pe.gal[,c(6:18)] = wc.pe.gal[,c(6:18)]*conversion.gal.m3
@@ -374,13 +386,15 @@ library(reshape2)
   wc.pe.galMWh[,c(6:18)] = wc.pe.galMWh[,c(6:18)]/wc.pe.galMWh[,19]
   
   #export files to csv
-  # write.csv(total.wc.m3, 'total-wc-by-fuel-m3.csv', row.names = FALSE)
   write.csv(wc.pe.m3, 'water-consumption-pe-m3.csv', row.names = FALSE)
   write.csv(wc.pe.m3MWh, 'water-consumption-pe-m3MWh.csv', row.names = FALSE)
-  # write.csv(total.wc.gal, 'total-wc-by-fuel-gal.csv', row.names = FALSE)
   write.csv(wc.pe.gal, 'water-consumption-pe-gal.csv', row.names = FALSE)
   write.csv(wc.pe.galMWh, 'water-consumption-pe-galMWh.csv', row.names = FALSE)
-
+  
+  write.csv(wc.pe.m3.byfuel, 'pe-wc-by-fuel-m3.csv', row.names = FALSE)
+  write.csv(wc.pe.m3MWh.byfuel, 'pe-wc-by-fuel-m3MWh.csv', row.names = FALSE)
+  write.csv(wc.pe.gal.byfuel, 'pe-wc-by-fuel-gal.csv', row.names = FALSE)
+  write.csv(wc.pe.galMWh.byfuel, 'pe-wc-by-fuel-galMWh.csv', row.names = FALSE)
   
 # Electricity water use ---------------------------------------------------
 
@@ -514,15 +528,15 @@ library(reshape2)
   
   for(i in 2:118) {
     #multiply each category by it's water consumption rate ***(make sure everything is in the right order!)
-    coolingwater.total[,i] = coolingwater.total[,i]*as.numeric(cooling.rates.cc[i,7]) #water consumption = 7th column. in Gal/MWh
-    coolingwater.dcdc[,i] = generation.bycode.dcdc[,i]*as.numeric(cooling.rates.cc[i,7])
-    coolingwater.gwbr[,i] = generation.bycode.gwbr[,i]*as.numeric(cooling.rates.cc[i,7])
-    coolingwater.gwfr[,i] = generation.bycode.gwfr[,i]*as.numeric(cooling.rates.cc[i,7])
-    coolingwater.gwsa[,i] = generation.bycode.gwsa[,i]*as.numeric(cooling.rates.cc[i,7])
-    coolingwater.pdfr[,i] = generation.bycode.pdfr[,i]*as.numeric(cooling.rates.cc[i,7])
-    coolingwater.swbr[,i] = generation.bycode.swbr[,i]*as.numeric(cooling.rates.cc[i,7])
-    coolingwater.swfr[,i] = generation.bycode.swfr[,i]*as.numeric(cooling.rates.cc[i,7])
-    coolingwater.swsa[,i] = generation.bycode.swsa[,i]*as.numeric(cooling.rates.cc[i,7])
+    coolingwater.total[,i] = coolingwater.total[,i]*as.numeric(cooling.rates.cc[i-1,7]) #water consumption = 7th column. in Gal/MWh
+    coolingwater.dcdc[,i] = generation.bycode.dcdc[,i]*as.numeric(cooling.rates.cc[i-1,7])
+    coolingwater.gwbr[,i] = generation.bycode.gwbr[,i]*as.numeric(cooling.rates.cc[i-1,7])
+    coolingwater.gwfr[,i] = generation.bycode.gwfr[,i]*as.numeric(cooling.rates.cc[i-1,7])
+    coolingwater.gwsa[,i] = generation.bycode.gwsa[,i]*as.numeric(cooling.rates.cc[i-1,7])
+    coolingwater.pdfr[,i] = generation.bycode.pdfr[,i]*as.numeric(cooling.rates.cc[i-1,7])
+    coolingwater.swbr[,i] = generation.bycode.swbr[,i]*as.numeric(cooling.rates.cc[i-1,7])
+    coolingwater.swfr[,i] = generation.bycode.swfr[,i]*as.numeric(cooling.rates.cc[i-1,7])
+    coolingwater.swsa[,i] = generation.bycode.swsa[,i]*as.numeric(cooling.rates.cc[i-1,7])
     }
   
   #make a total water use column
@@ -562,4 +576,67 @@ library(reshape2)
   write.csv(electric.wc.galMWh, 'electric-wc-galMWh.csv', row.names = FALSE)
   write.csv(electric.wc.m3, 'electric-wc-m3.csv',row.names = FALSE)
   write.csv(electric.wc.m3MWh, 'electric-wc-m3MWh.csv', row.names = FALSE)
+  
+  #make tables separated by fuel and cooling system (for analysis) using coolingwater.total data frame
+  elec.wc.gal.byfuel = coolingwater.total
+  #add columns for fuels
+  elec.wc.gal.byfuel$Biomass = rowSums(elec.wc.gal.byfuel[,c(2:12)])
+  elec.wc.gal.byfuel$Biogas = rowSums(elec.wc.gal.byfuel[,c(13:28)])
+  elec.wc.gal.byfuel$Fossil = rowSums(elec.wc.gal.byfuel[,c(29:54)])
+  elec.wc.gal.byfuel$Fossil.Gas = rowSums(elec.wc.gal.byfuel[,c(55:85)])
+  elec.wc.gal.byfuel$Geothermal = rowSums(elec.wc.gal.byfuel[,c(86:88)])
+  elec.wc.gal.byfuel$Uranium = elec.wc.gal.byfuel[,c(89)]
+  elec.wc.gal.byfuel$Other = rowSums(elec.wc.gal.byfuel[,c(90:105)])
+  elec.wc.gal.byfuel$Solar = rowSums(elec.wc.gal.byfuel[,c(106:110)])
+  #not including hydro
+  elec.wc.gal.byfuel$Wind = rowSums(elec.wc.gal.byfuel[,c(114:115)])
+  elec.wc.gal.byfuel$Not.Reported = rowSums(elec.wc.gal.byfuel[,c(116:119)])
+  #remove old values & classifications
+  elec.wc.gal.byfuel[,c(2:119)] = NULL
+  #merge with pp locations and generation
+  elec.wc.gal.byfuel = merge(plant.locations, elec.wc.gal.byfuel, all.y = TRUE, by.x = 'Plant.Code', by.y= 'Plant.Id')
+  elec.wc.gal.byfuel = merge(elec.wc.gal.byfuel, pp.generation[,1:2], all.x=TRUE, by.x='Plant.Code',by.y='Plant.Id')
+  
+  elec.wc.m3.byfuel = elec.wc.gal.byfuel
+  elec.wc.m3.byfuel[,c(6:16)] = elec.wc.m3.byfuel[,c(6:16)] / conversion.gal.m3
+  
+  elec.wc.galMWh.byfuel = as.data.frame(elec.wc.gal.byfuel)
+  elec.wc.galMWh.byfuel[,c(6:16)] = elec.wc.galMWh.byfuel[,c(6:16)]/elec.wc.galMWh.byfuel[,17]
+  elec.wc.m3MWh.byfuel = as.data.frame(elec.wc.m3.byfuel)
+  elec.wc.m3MWh.byfuel[,c(6:16)] = elec.wc.m3MWh.byfuel[,c(6:16)]/elec.wc.m3MWh.byfuel[,17]
+  
+  write.csv(elec.wc.gal.byfuel,'elec-wc-byfuel-gal.csv',row.names = FALSE)
+  write.csv(elec.wc.galMWh.byfuel, 'elec-wc-byfuel-galMWh.csv', row.names = FALSE)
+  write.csv(elec.wc.m3.byfuel, 'elec-wc-byfuel-m3.csv',row.names = FALSE)
+  write.csv(elec.wc.m3MWh.byfuel, 'elec-wc-byfuel-m3MWh.csv', row.names = FALSE)
+  
+  elec.wc.gal.bycool = coolingwater.total
+  #add columns for fuels
+  elec.wc.gal.bycool$None = rowSums(elec.wc.gal.bycool[,c(2,19:22,42,43,71:76,96:99,107:109,111:119)])
+  elec.wc.gal.bycool$Dry.Cooling = rowSums(elec.wc.gal.bycool[,c(3,4,13,29,30,45,46,55,56,67,77,78)])
+  elec.wc.gal.bycool$Once.Through = rowSums(elec.wc.gal.bycool[,c(5,6,11,12,14,17,18,23,44,47,48,53,54,79,80,84,85,89,104,105)])
+  elec.wc.gal.bycool$Ponds = rowSums(elec.wc.gal.bycool[,c(7,8,35,49,50,61,62,81,102)])
+  elec.wc.gal.bycool$Recirculating = rowSums(elec.wc.gal.bycool[,c(9,10,15,16,36:41,51,52,63:66,82,83,86:88,92:95,103,106,110)])
+  elec.wc.gal.bycool$Hybrid = rowSums(elec.wc.gal.bycool[,c(31,32,57,58)])
+  #remove old values & classifications
+  elec.wc.gal.bycool[,c(2:119)] = NULL
+  
+  #merge with pp locations and generation
+  elec.wc.gal.bycool = merge(plant.locations, elec.wc.gal.bycool, all.y = TRUE, by.x = 'Plant.Code', by.y= 'Plant.Id')
+  elec.wc.gal.bycool = merge(elec.wc.gal.bycool, pp.generation[,1:2], all.x=TRUE, by.x='Plant.Code',by.y='Plant.Id')
+  
+  elec.wc.m3.bycool = elec.wc.gal.bycool
+  elec.wc.m3.bycool[,c(6:12)] = elec.wc.m3.bycool[,c(6:12)] / conversion.gal.m3
+  
+  elec.wc.galMWh.bycool = as.data.frame(elec.wc.gal.bycool)
+  elec.wc.galMWh.bycool[,c(6:12)] = elec.wc.galMWh.bycool[,c(6:12)]/elec.wc.galMWh.bycool[,13]
+  elec.wc.m3MWh.bycool = as.data.frame(elec.wc.m3.bycool)
+  elec.wc.m3MWh.bycool[,c(6:12)] = elec.wc.m3MWh.bycool[,c(6:12)]/elec.wc.m3MWh.bycool[,13]
+  
+  write.csv(elec.wc.gal.bycool,'elec-wc-bycool-gal.csv',row.names = FALSE)
+  write.csv(elec.wc.galMWh.bycool, 'elec-wc-bycool-galMWh.csv', row.names = FALSE)
+  write.csv(elec.wc.m3.bycool, 'elec-wc-bycool-m3.csv',row.names = FALSE)
+  write.csv(elec.wc.m3MWh.bycool, 'elec-wc-bycool-m3MWh.csv', row.names = FALSE)
+  
+  
   
