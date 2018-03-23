@@ -247,8 +247,8 @@ library(reshape2)
   
   ##reassign feul categories (EG's fuel categories)
   fuel.categories$Oil = rowSums(reported.fuels.m[,c("DFO","JF","KER","PC","PG","RFO","SGP","WO","OOIL")])
-  fuel.categories$Subbituminous.Coal.ngp = reported.fuels.m[,c("NGP_SUB")]
-  fuel.categories$Bituminous.Coal.app = reported.fuels.m[,c("APP_BIT")]
+  fuel.categories$Subbituminous.Coal = rowSums(reported.fuels.m[,c("NGP_SUB", "RMR_SUB","OTH_SUB","OSUB")])
+  fuel.categories$Bituminous.Coal.app = rowSums(reported.fuels.m[,c("APP_BIT","OTH_BIT","BFG","RC","SC","SGC","WC","OBIT")])
   fuel.categories$Bituminous.Coal.int = reported.fuels.m[,c("INT_BIT")]
   fuel.categories$Bituminous.Coal.rmr = reported.fuels.m[,c("RMR_BIT")]
   fuel.categories$Lignite.Coal.gfc = reported.fuels.m[,c("GFC_LIG")]
@@ -262,13 +262,21 @@ library(reshape2)
   fuel.categories$Geothermal = reported.fuels.m[,c("GEO")]
   fuel.categories$Solar = reported.fuels.m[,c("SUN")]
   fuel.categories$Solar.Thermal = reported.fuels.m[,c("SUNT")]
-  fuel.categories$Subbituminous.Coal.rmr = reported.fuels.m[,c("RMR_SUB")]
-  fuel.categories$Bituminous.Coal.avg = rowSums(reported.fuels.m[,c("OTH_BIT","BFG","RC","SC","SGC","WC","OBIT")])
-  fuel.categories$Subbituminous.Coal.avg = rowSums(reported.fuels.m[,c("OTH_SUB", "OSUB")])
+  #fuel.categories$Subbituminous.Coal.rmr = reported.fuels.m[,c("RMR_SUB")]
+  #fuel.categories$Bituminous.Coal.avg = rowSums(reported.fuels.m[,c("OTH_BIT","BFG","RC","SC","SGC","WC","OBIT")])
+  #fuel.categories$Subbituminous.Coal.avg = rowSums(reported.fuels.m[,c("OTH_SUB", "OSUB")])
     
   ##merge plant.locations with fuel.categories for primary energy MMBTU dataframe
   primary.energy.mmbtu = merge(x=plant.locations, y=fuel.categories, all.x=TRUE, by.x="Plant.Code", by.y="Plant.Id")
-  primary.energy.mmbtu[,6:24][is.na(primary.energy.mmbtu[,6:24])] = 0
+  primary.energy.mmbtu[,6:21][is.na(primary.energy.mmbtu[,6:21])] = 0
+  byfuel.mmbtu = melt(colSums(primary.energy.mmbtu[,6:21]))
+  
+  for(i in c(2:7,9:16)){
+    pe.wateruse[i,c(2:14)] = pe.wateruse[i,c(2:14)] / as.numeric(byfuel.mmbtu[i,1])
+  }
+ 
+  #convert oil and natural gas rates to mmbtu
+  pe.wateruse[c(1,8),c(2:14)] = pe.wateruse[c(1,8),c(2:14)]*conversion.gj.mmbtu
   
 #calculate water consumption for each primary energy by power plant
   pe.total.wc = as.data.frame(primary.energy.mmbtu)
@@ -285,50 +293,50 @@ library(reshape2)
   pe.swnro.wc = as.data.frame(primary.energy.mmbtu)
   pe.swsa.wc = as.data.frame(primary.energy.mmbtu)
   
-  for(i in 1:19){
-    pe.total.wc[,5+i] = pe.total.wc[,5+i]*as.numeric(pe.wateruse[i,2]*conversion.gj.mmbtu)
-    pe.gwbr.wc[,5+i] = pe.gwbr.wc[,5+i]*as.numeric(pe.wateruse[i,3]*conversion.gj.mmbtu)
-    pe.gwfr.wc[,5+i] =  pe.gwfr.wc[,5+i]*as.numeric(pe.wateruse[i,4]*conversion.gj.mmbtu)
-    pe.gwnro.wc[,5+i] = pe.gwnro.wc[,5+i]*as.numeric(pe.wateruse[i,5]*conversion.gj.mmbtu)
-    pe.gwsa.wc[,5+i] =  pe.gwsa.wc[,5+i]*as.numeric(pe.wateruse[i,6]*conversion.gj.mmbtu)
-    pe.pdbr.wc[,5+i] =  pe.pdbr.wc[,5+i]*as.numeric(pe.wateruse[i,7]*conversion.gj.mmbtu)
-    pe.pdfr.wc[,5+i] =  pe.pdfr.wc[,5+i]*as.numeric(pe.wateruse[i,8]*conversion.gj.mmbtu)
-    pe.pdnro.wc[,5+i] = pe.pdnro.wc[,5+i]*as.numeric(pe.wateruse[i,9]*conversion.gj.mmbtu)
-    pe.pdsa.wc[,5+i] =  pe.pdsa.wc[,5+i]*as.numeric(pe.wateruse[i,10]*conversion.gj.mmbtu)
-    pe.swbr.wc[,5+i] =  pe.swbr.wc[,5+i]*as.numeric(pe.wateruse[i,11]*conversion.gj.mmbtu)
-    pe.swfr.wc[,5+i] =  pe.swfr.wc[,5+i]*as.numeric(pe.wateruse[i,12]*conversion.gj.mmbtu)
-    pe.swnro.wc[,5+i] = pe.swnro.wc[,5+i]*as.numeric(pe.wateruse[i,13]*conversion.gj.mmbtu)
-    pe.swsa.wc[,5+i] =  pe.swsa.wc[,5+i]*as.numeric(pe.wateruse[i,14]*conversion.gj.mmbtu)
+  for(i in 1:16){
+    pe.total.wc[,5+i] = pe.total.wc[,5+i]*as.numeric(pe.wateruse[i,2])
+    pe.gwbr.wc[,5+i] = pe.gwbr.wc[,5+i]*as.numeric(pe.wateruse[i,3])
+    pe.gwfr.wc[,5+i] =  pe.gwfr.wc[,5+i]*as.numeric(pe.wateruse[i,4])
+    pe.gwnro.wc[,5+i] = pe.gwnro.wc[,5+i]*as.numeric(pe.wateruse[i,5])
+    pe.gwsa.wc[,5+i] =  pe.gwsa.wc[,5+i]*as.numeric(pe.wateruse[i,6])
+    pe.pdbr.wc[,5+i] =  pe.pdbr.wc[,5+i]*as.numeric(pe.wateruse[i,7])
+    pe.pdfr.wc[,5+i] =  pe.pdfr.wc[,5+i]*as.numeric(pe.wateruse[i,8])
+    pe.pdnro.wc[,5+i] = pe.pdnro.wc[,5+i]*as.numeric(pe.wateruse[i,9])
+    pe.pdsa.wc[,5+i] =  pe.pdsa.wc[,5+i]*as.numeric(pe.wateruse[i,10])
+    pe.swbr.wc[,5+i] =  pe.swbr.wc[,5+i]*as.numeric(pe.wateruse[i,11])
+    pe.swfr.wc[,5+i] =  pe.swfr.wc[,5+i]*as.numeric(pe.wateruse[i,12])
+    pe.swnro.wc[,5+i] = pe.swnro.wc[,5+i]*as.numeric(pe.wateruse[i,13])
+    pe.swsa.wc[,5+i] =  pe.swsa.wc[,5+i]*as.numeric(pe.wateruse[i,14])
   }
   
   #create total water consumption columns
-  pe.total.wc$total.consumption = rowSums(pe.total.wc[,c(6:24)]) 
-  pe.gwbr.wc$total.consumption= rowSums(pe.gwbr.wc[,c(6:24)]) 
-  pe.gwfr.wc$total.consumption= rowSums(pe.gwfr.wc[,c(6:24)]) 
-  pe.gwnro.wc$total.consumption= rowSums(pe.gwnro.wc[,c(6:24)]) 
-  pe.gwsa.wc$total.consumption= rowSums(pe.gwsa.wc[,c(6:24)]) 
-  pe.pdbr.wc$total.consumption= rowSums(pe.pdbr.wc[,c(6:24)]) 
-  pe.pdfr.wc$total.consumption= rowSums(pe.pdfr.wc[,c(6:24)]) 
-  pe.pdnro.wc$total.consumption= rowSums(pe.pdnro.wc[,c(6:24)]) 
-  pe.pdsa.wc$total.consumption= rowSums(pe.pdsa.wc[,c(6:24)]) 
-  pe.swbr.wc$total.consumption= rowSums(pe.swbr.wc[,c(6:24)]) 
-  pe.swfr.wc$total.consumption= rowSums(pe.swfr.wc[,c(6:24)]) 
-  pe.swnro.wc$total.consumption= rowSums(pe.swnro.wc[,c(6:24)]) 
-  pe.swsa.wc$total.consumption= rowSums(pe.swsa.wc[,c(6:24)]) 
+  pe.total.wc$total.consumption = rowSums(pe.total.wc[,c(6:21)]) 
+  pe.gwbr.wc$total.consumption= rowSums(pe.gwbr.wc[,c(6:21)]) 
+  pe.gwfr.wc$total.consumption= rowSums(pe.gwfr.wc[,c(6:21)]) 
+  pe.gwnro.wc$total.consumption= rowSums(pe.gwnro.wc[,c(6:21)]) 
+  pe.gwsa.wc$total.consumption= rowSums(pe.gwsa.wc[,c(6:21)]) 
+  pe.pdbr.wc$total.consumption= rowSums(pe.pdbr.wc[,c(6:21)]) 
+  pe.pdfr.wc$total.consumption= rowSums(pe.pdfr.wc[,c(6:21)]) 
+  pe.pdnro.wc$total.consumption= rowSums(pe.pdnro.wc[,c(6:21)]) 
+  pe.pdsa.wc$total.consumption= rowSums(pe.pdsa.wc[,c(6:21)]) 
+  pe.swbr.wc$total.consumption= rowSums(pe.swbr.wc[,c(6:21)]) 
+  pe.swfr.wc$total.consumption= rowSums(pe.swfr.wc[,c(6:21)]) 
+  pe.swnro.wc$total.consumption= rowSums(pe.swnro.wc[,c(6:21)]) 
+  pe.swsa.wc$total.consumption= rowSums(pe.swsa.wc[,c(6:21)]) 
   
-  pe.water.consumption = pe.total.wc[,c(1:5,25)]
-  pe.water.consumption$gwbr = pe.gwbr.wc[,25]
-  pe.water.consumption$gwfr = pe.gwfr.wc[,25]
-  pe.water.consumption$gwnro = pe.gwnro.wc[,25]
-  pe.water.consumption$gwsa = pe.gwsa.wc[,25]
-  pe.water.consumption$pdbr = pe.pdbr.wc[,25]
-  pe.water.consumption$pdfr = pe.pdfr.wc[,25]
-  pe.water.consumption$pdnro = pe.pdnro.wc[,25]
-  pe.water.consumption$pdsa = pe.pdsa.wc[,25]
-  pe.water.consumption$swbr = pe.swbr.wc[,25]
-  pe.water.consumption$swfr = pe.swfr.wc[,25]
-  pe.water.consumption$swnro = pe.swnro.wc[,25]
-  pe.water.consumption$swsa = pe.swsa.wc[,25]
+  pe.water.consumption = pe.total.wc[,c(1:5,22)]
+  pe.water.consumption$gwbr = pe.gwbr.wc[,22]
+  pe.water.consumption$gwfr = pe.gwfr.wc[,22]
+  pe.water.consumption$gwnro = pe.gwnro.wc[,22]
+  pe.water.consumption$gwsa = pe.gwsa.wc[,22]
+  pe.water.consumption$pdbr = pe.pdbr.wc[,22]
+  pe.water.consumption$pdfr = pe.pdfr.wc[,22]
+  pe.water.consumption$pdnro = pe.pdnro.wc[,22]
+  pe.water.consumption$pdsa = pe.pdsa.wc[,22]
+  pe.water.consumption$swbr = pe.swbr.wc[,22]
+  pe.water.consumption$swfr = pe.swfr.wc[,22]
+  pe.water.consumption$swnro = pe.swnro.wc[,22]
+  pe.water.consumption$swsa = pe.swsa.wc[,22]
   pe.water.consumption = merge(pe.water.consumption, plant.generation[,c(1,43)], all.x=TRUE, by.x = 'Plant.Code', by.y='Plant.Id')
   
   
@@ -368,12 +376,12 @@ library(reshape2)
   wc.pe.m3.byfuel = pe.total.wc
   wc.pe.m3.byfuel = merge(wc.pe.m3.byfuel, plant.generation[,c(1,43)], all.x=TRUE, by.x = 'Plant.Code', by.y='Plant.Id')
   wc.pe.m3MWh.byfuel = wc.pe.m3.byfuel
-  wc.pe.m3MWh.byfuel[,c(6:25)] = wc.pe.m3MWh.byfuel[,c(6:25)]/wc.pe.m3MWh.byfuel[,26]
+  wc.pe.m3MWh.byfuel[,c(6:22)] = wc.pe.m3MWh.byfuel[,c(6:22)]/wc.pe.m3MWh.byfuel[,23]
   
   wc.pe.gal.byfuel = wc.pe.m3.byfuel
-  wc.pe.gal.byfuel[,c(6:25)] = wc.pe.gal.byfuel[,c(6:25)] * conversion.gal.m3
+  wc.pe.gal.byfuel[,c(6:22)] = wc.pe.gal.byfuel[,c(6:22)] * conversion.gal.m3
   wc.pe.galMWh.byfuel = wc.pe.gal.byfuel
-  wc.pe.galMWh.byfuel[,c(6:25)] = wc.pe.galMWh.byfuel[,c(6:25)]/wc.pe.galMWh.byfuel[,26]
+  wc.pe.galMWh.byfuel[,c(6:22)] = wc.pe.galMWh.byfuel[,c(6:22)]/wc.pe.galMWh.byfuel[,23]
   
   #total volume by water type 
   wc.pe.m3 = pe.water.consumption
