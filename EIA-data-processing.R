@@ -89,25 +89,25 @@ library(reshape2)
 #taken from EG/KTS file "SupplementaryData-Grubert_Sanders_2017-WaterUSEnergySystem2014.xlsx"
 #in units of m^3/GJ of energy delivered
   ##total water consumption
-  oil.tot.wc = as.numeric(all.wc[1, 7]) * conversion.gj.mmbtu
-  sub.ngp.tot.wc = as.numeric(all.wc[2,7]) * conversion.gj.mmbtu
-  bit.app.tot.wc = as.numeric(all.wc[3,7]) * conversion.gj.mmbtu
-  bit.int.tot.wc = as.numeric(all.wc[4,7]) * conversion.gj.mmbtu
-  bit.rmr.tot.wc = as.numeric(all.wc[5,7]) * conversion.gj.mmbtu
-  lig.gfc.tot.wc = as.numeric(all.wc[6,7]) * conversion.gj.mmbtu
-  lig.ngp.tot.wc = as.numeric(all.wc[7,7]) * conversion.gj.mmbtu
-  ng.tot.wc = as.numeric(all.wc[8,7]) * conversion.gj.mmbtu
-  ur.tot.wc = as.numeric(all.wc[9,7]) * conversion.gj.mmbtu
-  wat.tot.wc = as.numeric(all.wc[10,7]) * conversion.gj.mmbtu
-  wnd.tot.wc = as.numeric(all.wc[11,7]) * conversion.gj.mmbtu
-  brdf.tot.wc = as.numeric(all.wc[12,7]) * conversion.gj.mmbtu
-  bg.tot.wc = as.numeric(all.wc[13,7]) * conversion.gj.mmbtu
-  geo.tot.wc = as.numeric(all.wc[14,7]) * conversion.gj.mmbtu
-  spv.tot.wc = as.numeric(all.wc[15,7]) * conversion.gj.mmbtu
-  sth.tot.wc = as.numeric(all.wc[16,7]) * conversion.gj.mmbtu
-  sub.rmr.tot.wc = as.numeric(all.wc[17,7]) * conversion.gj.mmbtu
-  bit.avg.tot.wc = as.numeric(all.wc[18,7]) * conversion.gj.mmbtu
-  sub.avg.tot.wc = as.numeric(all.wc[19,7]) * conversion.gj.mmbtu
+  # oil.tot.wc = as.numeric(all.wc[1, 7]) * conversion.gj.mmbtu
+  # sub.ngp.tot.wc = as.numeric(all.wc[2,7]) * conversion.gj.mmbtu
+  # bit.app.tot.wc = as.numeric(all.wc[3,7]) * conversion.gj.mmbtu
+  # bit.int.tot.wc = as.numeric(all.wc[4,7]) * conversion.gj.mmbtu
+  # bit.rmr.tot.wc = as.numeric(all.wc[5,7]) * conversion.gj.mmbtu
+  # lig.gfc.tot.wc = as.numeric(all.wc[6,7]) * conversion.gj.mmbtu
+  # lig.ngp.tot.wc = as.numeric(all.wc[7,7]) * conversion.gj.mmbtu
+  # ng.tot.wc = as.numeric(all.wc[8,7]) * conversion.gj.mmbtu
+  # ur.tot.wc = as.numeric(all.wc[9,7]) * conversion.gj.mmbtu
+  # wat.tot.wc = as.numeric(all.wc[10,7]) * conversion.gj.mmbtu
+  # wnd.tot.wc = as.numeric(all.wc[11,7]) * conversion.gj.mmbtu
+  # brdf.tot.wc = as.numeric(all.wc[12,7]) * conversion.gj.mmbtu
+  # bg.tot.wc = as.numeric(all.wc[13,7]) * conversion.gj.mmbtu
+  # geo.tot.wc = as.numeric(all.wc[14,7]) * conversion.gj.mmbtu
+  # spv.tot.wc = as.numeric(all.wc[15,7]) * conversion.gj.mmbtu
+  # sth.tot.wc = as.numeric(all.wc[16,7]) * conversion.gj.mmbtu
+  # sub.rmr.tot.wc = as.numeric(all.wc[17,7]) * conversion.gj.mmbtu
+  # bit.avg.tot.wc = as.numeric(all.wc[18,7]) * conversion.gj.mmbtu
+  # sub.avg.tot.wc = as.numeric(all.wc[19,7]) * conversion.gj.mmbtu
   
   
 # make pivot tables -------------------------------------------------------
@@ -648,3 +648,12 @@ library(reshape2)
   
   
   
+  
+# Plant generation --------------------------------------------------------
+#create a spreadsheet with total generation by power plant to calculate 
+#water consumption intensities after spatial joins
+  
+total.generation = plant.generation[,c("Plant.Id","total.gen")]
+total.generation = merge(total.generation, plant.locations, all.x=T, by.x="Plant.Id",by.y="Plant.Code")
+
+write.csv(total.generation, 'power-plant-generation.csv',row.names = FALSE)
